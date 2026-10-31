@@ -5,7 +5,6 @@
   "packageManager": "pnpm@12.16.1",
   "scripts": {
     "synth": "cdk synth --quiet && cp cdk.out/GitHubOidcStack.template.json template.json",
-    "test": "bash lib/test_oidc_stack.sh",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,7 +14,6 @@
   "devDependencies": {
     "@types/node": "24.19.2",
     "aws-cdk": "2.1147.0",
-    "ts-node": "10.9.2",
     "typescript": "5.9.3"
   }
 }

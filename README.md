@@ -38,40 +38,40 @@ repo:OWNER@OWNER_ID/REPOSITORY@REPOSITORY_ID:workflow:WORKFLOW_NAME:ref:refs/hea
 
 ## AWS CloudShellからのセットアップ
 
-CloudShellを対象のAWSアカウントとリージョンで開き、実行環境の認証情報を
-利用します。
+CloudShellを対象のAWSアカウントとリージョンで開き、実行環境の認証情報と
+AWS CLIを利用します。Node.js、pnpm、CDKのインストールは不要です。
 
 ```sh
 aws sts get-caller-identity
 export AWS_REGION=ap-northeast-1
-corepack enable
-pnpm install --frozen-lockfile
-pnpm test
-pnpm typecheck
-pnpm synth
-AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-pnpm exec cdk bootstrap "aws://${AWS_ACCOUNT_ID}/${AWS_REGION}"
-```
-
-`AWS_REGION`はデプロイ先に置き換えてください。CDKを変更した場合は
-`pnpm synth`を実行し、生成された`template.json`をリポジトリに含めます。
-GitHub Actionsはpushとpull requestごとにテスト・合成し、テンプレート差分を
-ログに表示します。合成結果はWorkflow artifactとしても保存されます。
-
-## デプロイ
-
-リポジトリ名と数値IDは最大5組まで指定できます。追加分は
-`GitHubRepository2` / `GitHubRepositoryId2`から順に指定します。
-
-```sh
-pnpm exec cdk deploy \
-  --parameters GitHubOwner=OWNER \
-  --parameters GitHubOwnerId=OWNER_ID \
-  --parameters GitHubRepository1=REPOSITORY \
-  --parameters GitHubRepositoryId1=REPOSITORY_ID \
+curl --fail --location --silent --show-error \
+  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/template.json \
+  --output template.json
+aws cloudformation deploy \
+  --template-file template.json \
+  --stack-name github-actions-oidc \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides \
+    GitHubOwner=OWNER \
+    GitHubOwnerId=OWNER_ID \
+    GitHubRepository1=REPOSITORY \
+    GitHubRepositoryId1=REPOSITORY_ID \
   --region "$AWS_REGION"
 ```
 
-Workflow名を変更する場合は、`GitHubReadOnlyWorkflow`または
-`GitHubCdkDeployWorkflow`パラメーターを指定します。生成済みの
-`template.json`はCloudFormation CLIから直接利用できます。
+`AWS_REGION`とパラメーター値を環境に合わせてください。複数リポジトリを
+許可する場合は、対応する`GitHubRepository2` / `GitHubRepositoryId2`から
+最大5組までパラメーターを追加します。
+
+CDK変更時のテンプレート更新：pushとpull requestでGitHub Actionsが合成し、
+同一リポジトリのブランチに`template.json`の更新をコミットします。PRの差分に
+この更新が含まれます。合成テンプレートはWorkflow artifactにも保存されます。
+ForkからのPRには自動コミットされないため、artifactを取得してテンプレートを
+反映してください。
+
+## デプロイ
+
+Workflow名を変更する場合は、`--parameter-overrides`に
+`GitHubReadOnlyWorkflow=WORKFLOW名`または
+`GitHubCdkDeployWorkflow=WORKFLOW名`を追加します。更新後も同じ
+`aws cloudformation deploy`コマンドを実行してください。
