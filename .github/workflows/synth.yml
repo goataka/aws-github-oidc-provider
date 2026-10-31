@@ -1,0 +1,53 @@
+name: Verify CloudFormation template
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Synthesize CloudFormation template
+        run: pnpm synth
+
+      - name: Check generated template and show differences
+        shell: bash
+        run: |
+          if git diff --quiet -- template.json; then
+            echo "The committed CloudFormation template is up to date." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## CloudFormation template is out of date"
+              echo 'Regenerate and commit `template.json` with `pnpm synth`.'
+              echo '```diff'
+              git diff -- template.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            git diff -- template.json
+            exit 1
+          fi
