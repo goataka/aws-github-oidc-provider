@@ -62,7 +62,8 @@ Replace the example region with the CloudShell region you intend to deploy to.
 requests when changing the CDK application. GitHub Actions also synthesizes the
 template on every push and pull request. It checks the generated output against
 the committed file and displays any missing changes in the job summary and
-logs; update and commit the file with `pnpm synth` if the check reports a diff.
+logs, and uploads the synthesized template as a workflow artifact. Update and
+commit the file with `pnpm synth` if the check reports a diff.
 
 Deploy with the GitHub owner, numeric owner ID, repository name, and its numeric
 repository ID:
