@@ -35,21 +35,7 @@ jobs:
         run: pnpm synth
 
       - name: Check generated template and show differences
-        shell: bash
-        run: |
-          if git diff --quiet -- template.json; then
-            echo "The committed CloudFormation template is up to date." >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "## CloudFormation template is out of date"
-              echo 'Regenerate and commit `template.json` with `pnpm synth`.'
-              echo '```diff'
-              git diff -- template.json
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            git diff -- template.json
-            exit 1
-          fi
+        run: git diff --exit-code -- template.json
 
       - name: Upload synthesized template
         if: always() && hashFiles('cdk.out/GitHubOidcStack.template.json') != ''

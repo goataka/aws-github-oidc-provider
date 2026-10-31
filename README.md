@@ -1,24 +1,21 @@
-# AWS GitHub OIDC provider
+# AWS GitHub OIDC プロバイダー
 
-AWS CDK project that synthesizes a CloudFormation template for GitHub Actions
-OIDC access. The stack creates the GitHub OIDC provider and two roles:
+## 概要
 
-- `GitHubActionsReadOnly` with the AWS managed `ReadOnlyAccess` policy.
-- `GitHubActionsCdkDeploy` with the AWS managed `AdministratorAccess` policy,
-  which permits CDK deployments. Review whether this level of access is
-  appropriate for your account.
+- AWS CDKでGitHub Actions用のOIDCプロバイダーとIAMロールを作成します。
+- `template.json`はCloudFormation CLIから利用できる生成済みテンプレートです。
+- ロール：
+  - `GitHubActionsReadOnly`：AWS管理ポリシー`ReadOnlyAccess`
+  - `GitHubActionsCdkDeploy`：AWS管理ポリシー`AdministratorAccess`
+- 両ロールは指定したWorkflow、リポジトリ、`main`ブランチに制限されます。
+- Workflowの既定値：ReadOnlyは`copilot-setup`、CDKデプロイは`cdk-deploy`
 
-Both roles are restricted to the `main` branch, the configured workflow name,
-and the configured repositories. The workflow parameters default to
-`copilot-setup` and `cdk-deploy`.
+## GitHub OIDCの設定
 
-## GitHub OIDC subject setup
-
-AWS supports GitHub's `aud` and `sub` claims, but not custom OIDC claims as
-separate IAM condition keys. To restrict each role to its own workflow, the
-GitHub `sub` claim must be customized before using this template. Configure the
-repository or organization OIDC subject template to include these claims in
-this order:
+AWS IAMはGitHubのOIDC `aud`と`sub`クレームを使用します。
+詳細：[GitHub OIDC](https://docs.github.com/en/actions/concepts/security/openid-connect)
+Workflow単位に制限するには、GitHubのOIDC subjectテンプレートに次の
+クレームをこの順序で設定してください。
 
 ```json
 {
@@ -26,25 +23,23 @@ this order:
 }
 ```
 
-Opt the repository in to its organization's template if required. The
-resulting subject must have this format:
+生成されるsubjectは次の形式です。
 
 ```text
 repo:OWNER@OWNER_ID/REPOSITORY@REPOSITORY_ID:workflow:WORKFLOW_NAME:ref:refs/heads/main
 ```
 
-GitHub includes owner and repository IDs in the `repo` segment for immutable
-subject claims. Supply IDs matching the repository names and order below.
-Set the workflow's `name` to the configured value (not merely its file name).
-Jobs must run from `main` and must not use a GitHub environment, which changes
-the subject format. Each workflow also needs `permissions: id-token: write` to
-request an OIDC token.
+- ownerとリポジトリの名前・IDはCloudFormationパラメーターで指定します。
+- `workflow`には`.yml`のファイル名でなく、Workflowの`name`を指定します。
+- 既存リポジトリでimmutable subjectを使っていない場合は、GitHub側で
+  immutable subjectを有効にしてから利用してください。
+- Workflowには`permissions: id-token: write`を設定してください。
+- GitHub Environmentを使うとsubject形式が変わるため、この設定では利用できません。
 
-## Deploy from AWS CloudShell
+## AWS CloudShellからのセットアップ
 
-Open AWS CloudShell in the target account and region. It uses the active AWS
-session credentials. Confirm the account and choose the region before
-bootstrapping:
+CloudShellを対象のAWSアカウントとリージョンで開き、実行環境の認証情報を
+利用します。
 
 ```sh
 aws sts get-caller-identity
@@ -54,19 +49,19 @@ pnpm install --frozen-lockfile
 pnpm test
 pnpm typecheck
 pnpm synth
-pnpm exec cdk bootstrap "aws://$(aws sts get-caller-identity --query Account --output text)/$AWS_REGION"
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+pnpm exec cdk bootstrap "aws://${AWS_ACCOUNT_ID}/${AWS_REGION}"
 ```
 
-Replace the example region with the CloudShell region you intend to deploy to.
-`pnpm synth` updates `template.json`; include this generated artifact in pull
-requests when changing the CDK application. GitHub Actions also synthesizes the
-template on every push and pull request. It checks the generated output against
-the committed file and displays any missing changes in the job summary and
-logs, and uploads the synthesized template as a workflow artifact. Update and
-commit the file with `pnpm synth` if the check reports a diff.
+`AWS_REGION`はデプロイ先に置き換えてください。CDKを変更した場合は
+`pnpm synth`を実行し、生成された`template.json`をリポジトリに含めます。
+GitHub Actionsはpushとpull requestごとにテスト・合成し、テンプレート差分を
+ログに表示します。合成結果はWorkflow artifactとしても保存されます。
 
-Deploy with the GitHub owner, numeric owner ID, repository name, and its numeric
-repository ID:
+## デプロイ
+
+リポジトリ名と数値IDは最大5組まで指定できます。追加分は
+`GitHubRepository2` / `GitHubRepositoryId2`から順に指定します。
 
 ```sh
 pnpm exec cdk deploy \
@@ -77,9 +72,6 @@ pnpm exec cdk deploy \
   --region "$AWS_REGION"
 ```
 
-The template supports up to five repositories. For each additional repository,
-pass its name and matching ID as `GitHubRepository2` / `GitHubRepositoryId2`,
-and so on through slot 5. Unused slots default to empty. To change the allowed
-workflow names, pass `GitHubReadOnlyWorkflow` and/or `GitHubCdkDeployWorkflow`
-as stack parameters. The generated `template.json` can also be deployed
-directly with CloudFormation.
+Workflow名を変更する場合は、`GitHubReadOnlyWorkflow`または
+`GitHubCdkDeployWorkflow`パラメーターを指定します。生成済みの
+`template.json`はCloudFormation CLIから直接利用できます。

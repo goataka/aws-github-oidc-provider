@@ -10,7 +10,7 @@
   },
   "GitHubRepository1": {
    "Type": "String",
-   "Description": "Repository name 1 owned by GitHubOwner."
+   "Description": "Required repository name 1."
   },
   "GitHubRepositoryId1": {
    "Type": "String",
@@ -19,7 +19,7 @@
   "GitHubRepository2": {
    "Type": "String",
    "Default": "",
-   "Description": "Optional additional repository name 2."
+   "Description": "Optional repository name 2."
   },
   "GitHubRepositoryId2": {
    "Type": "String",
@@ -29,7 +29,7 @@
   "GitHubRepository3": {
    "Type": "String",
    "Default": "",
-   "Description": "Optional additional repository name 3."
+   "Description": "Optional repository name 3."
   },
   "GitHubRepositoryId3": {
    "Type": "String",
@@ -39,7 +39,7 @@
   "GitHubRepository4": {
    "Type": "String",
    "Default": "",
-   "Description": "Optional additional repository name 4."
+   "Description": "Optional repository name 4."
   },
   "GitHubRepositoryId4": {
    "Type": "String",
@@ -49,7 +49,7 @@
   "GitHubRepository5": {
    "Type": "String",
    "Default": "",
-   "Description": "Optional additional repository name 5."
+   "Description": "Optional repository name 5."
   },
   "GitHubRepositoryId5": {
    "Type": "String",
@@ -59,12 +59,12 @@
   "GitHubReadOnlyWorkflow": {
    "Type": "String",
    "Default": "copilot-setup",
-   "Description": "Exact GitHub Actions workflow name allowed to assume the read-only role."
+   "Description": "Workflow allowed to assume the read-only role."
   },
   "GitHubCdkDeployWorkflow": {
    "Type": "String",
    "Default": "cdk-deploy",
-   "Description": "Exact GitHub Actions workflow name allowed to assume the CDK deployment role."
+   "Description": "Workflow allowed to assume the CDK deployment role."
   },
   "BootstrapVersion": {
    "Type": "AWS::SSM::Parameter::Value<String>",
