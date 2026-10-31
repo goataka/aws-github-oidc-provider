@@ -40,29 +40,37 @@ Jobs must run from `main` and must not use a GitHub environment, which changes
 the subject format. Each workflow also needs `permissions: id-token: write` to
 request an OIDC token.
 
-## Synthesize and deploy
+## Deploy from AWS CloudShell
 
-Use the account and region configured in the current AWS environment. Install
-dependencies and generate the checked-in CloudFormation template with pnpm:
+Open AWS CloudShell in the target account and region. It uses the active AWS
+session credentials. Confirm the account and choose the region before
+bootstrapping:
 
 ```sh
+aws sts get-caller-identity
+export AWS_REGION=ap-northeast-1
+corepack enable
 pnpm install --frozen-lockfile
 pnpm test
+pnpm typecheck
 pnpm synth
+pnpm exec cdk bootstrap "aws://$(aws sts get-caller-identity --query Account --output text)/$AWS_REGION"
 ```
 
+Replace the example region with the CloudShell region you intend to deploy to.
 `pnpm synth` updates `template.json`; include this generated artifact in pull
 requests when changing the CDK application.
 
-Deploy with the repository owner, numeric owner ID, repository name, and its
-numeric repository ID:
+Deploy with the GitHub owner, numeric owner ID, repository name, and its numeric
+repository ID:
 
 ```sh
 pnpm exec cdk deploy \
   --parameters GitHubOwner=OWNER \
   --parameters GitHubOwnerId=OWNER_ID \
   --parameters GitHubRepository1=REPOSITORY \
-  --parameters GitHubRepositoryId1=REPOSITORY_ID
+  --parameters GitHubRepositoryId1=REPOSITORY_ID \
+  --region "$AWS_REGION"
 ```
 
 The template supports up to five repositories. For each additional repository,

@@ -1,11 +1,12 @@
-import { Aws, CfnCondition, CfnOutput, CfnParameter, Fn, Stack } from 'aws-cdk-lib';
+import { Aws, CfnCondition, CfnOutput, CfnParameter, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { Construct } from 'constructs';
 
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 
 export class GitHubOidcStack extends Stack {
-  constructor(scope, id, props) {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const owner = new CfnParameter(this, 'GitHubOwner', {
@@ -69,7 +70,7 @@ export class GitHubOidcStack extends Stack {
       clientIdList: ['sts.amazonaws.com'],
     });
 
-    const subForWorkflow = (workflow) =>
+    const subForWorkflow = (workflow: CfnParameter) =>
       repositories.map(({ repository, repositoryId, condition }) => {
         const subject = Fn.join('', [
           'repo:',
@@ -87,8 +88,13 @@ export class GitHubOidcStack extends Stack {
         return condition ? Fn.conditionIf(condition.logicalId, subject, Aws.NO_VALUE) : subject;
       });
 
-    const createRole = (id, name, workflow, policyName) => {
-      const role = new iam.Role(this, id, {
+    const createRole = (
+      id: string,
+      name: string,
+      workflow: CfnParameter,
+      policyName: string,
+    ): iam.Role => {
+      return new iam.Role(this, id, {
         roleName: name,
         assumedBy: new iam.FederatedPrincipal(
           provider.attrArn,
@@ -102,8 +108,6 @@ export class GitHubOidcStack extends Stack {
         ),
         managedPolicies: [iam.ManagedPolicy.fromAwsManagedPolicyName(policyName)],
       });
-
-      return role;
     };
 
     const readOnlyRole = createRole(

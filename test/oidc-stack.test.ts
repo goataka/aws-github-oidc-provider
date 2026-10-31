@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
-import { GitHubOidcStack } from '../lib/oidc-stack.mjs';
+import { GitHubOidcStack } from '../lib/oidc-stack';
 
 const createTemplate = () => {
   const app = new App();
@@ -24,10 +24,8 @@ test('creates GitHub OIDC provider and workflow-specific roles for main', () => 
   );
   assert.equal(roles.length, 2);
 
-  const byPolicy = (policy) =>
-    roles.find((role) =>
-      JSON.stringify(role.Properties.ManagedPolicyArns).includes(policy),
-    );
+  const byPolicy = (policy: string) =>
+    roles.find((role) => JSON.stringify(role.Properties.ManagedPolicyArns).includes(policy));
   const readOnlyRole = byPolicy('ReadOnlyAccess');
   const cdkDeployRole = byPolicy('AdministratorAccess');
 
@@ -57,7 +55,7 @@ test('creates GitHub OIDC provider and workflow-specific roles for main', () => 
   );
 });
 
-test('sets default workflow names and accepts repository-list parameters', () => {
+test('sets default workflow names and accepts repository slot parameters', () => {
   const { Parameters } = createTemplate();
 
   assert.equal(Parameters.GitHubReadOnlyWorkflow.Default, 'copilot-setup');

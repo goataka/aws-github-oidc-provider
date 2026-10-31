@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { App } from 'aws-cdk-lib';
-import { GitHubOidcStack } from '../lib/oidc-stack.mjs';
+import { GitHubOidcStack } from '../lib/oidc-stack';
 
 const app = new App();
 
