@@ -1,0 +1,18 @@
+{
+  "name": "aws-github-oidc-provider",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "synth": "cdk synth --quiet && cp cdk.out/GitHubOidcStack.template.json template.json",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.275.0",
+    "constructs": "10.8.1"
+  },
+  "devDependencies": {
+    "aws-cdk": "2.1147.0"
+  }
+}
