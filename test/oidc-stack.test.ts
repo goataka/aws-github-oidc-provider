@@ -4,10 +4,20 @@ import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { GitHubOidcStack } from '../lib/oidc-stack';
 
-const createTemplate = () => {
+type TemplateResource = {
+  Type: string;
+  Properties: Record<string, any>;
+};
+
+type SynthTemplate = {
+  Parameters: Record<string, { Type: string; Default?: string }>;
+  Resources: Record<string, TemplateResource>;
+};
+
+const createTemplate = (): SynthTemplate => {
   const app = new App();
   const stack = new GitHubOidcStack(app, 'TestStack');
-  return Template.fromStack(stack).toJSON();
+  return Template.fromStack(stack).toJSON() as SynthTemplate;
 };
 
 test('creates GitHub OIDC provider and workflow-specific roles for main', () => {
