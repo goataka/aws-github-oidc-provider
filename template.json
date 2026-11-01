@@ -1,0 +1,599 @@
+{
+ "Parameters": {
+  "GitHubOwner": {
+   "Type": "String",
+   "Description": "GitHub account or organization that owns the repositories."
+  },
+  "GitHubOwnerId": {
+   "Type": "String",
+   "Description": "Immutable numeric GitHub owner ID."
+  },
+  "GitHubRepository1": {
+   "Type": "String",
+   "Description": "Required repository name 1."
+  },
+  "GitHubRepositoryId1": {
+   "Type": "String",
+   "Description": "Immutable numeric ID for repository 1."
+  },
+  "GitHubRepository2": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional repository name 2."
+  },
+  "GitHubRepositoryId2": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Immutable numeric ID for repository 2."
+  },
+  "GitHubRepository3": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional repository name 3."
+  },
+  "GitHubRepositoryId3": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Immutable numeric ID for repository 3."
+  },
+  "GitHubRepository4": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional repository name 4."
+  },
+  "GitHubRepositoryId4": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Immutable numeric ID for repository 4."
+  },
+  "GitHubRepository5": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Optional repository name 5."
+  },
+  "GitHubRepositoryId5": {
+   "Type": "String",
+   "Default": "",
+   "Description": "Immutable numeric ID for repository 5."
+  },
+  "GitHubReadOnlyWorkflow": {
+   "Type": "String",
+   "Default": "copilot-setup",
+   "Description": "Workflow allowed to assume the read-only role."
+  },
+  "GitHubCdkDeployWorkflow": {
+   "Type": "String",
+   "Default": "cdk-deploy",
+   "Description": "Workflow allowed to assume the CDK deployment role."
+  }
+ },
+ "Conditions": {
+  "HasGitHubRepository2": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "GitHubRepository2"
+      },
+      ""
+     ]
+    }
+   ]
+  },
+  "HasGitHubRepository3": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "GitHubRepository3"
+      },
+      ""
+     ]
+    }
+   ]
+  },
+  "HasGitHubRepository4": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "GitHubRepository4"
+      },
+      ""
+     ]
+    }
+   ]
+  },
+  "HasGitHubRepository5": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "GitHubRepository5"
+      },
+      ""
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "GitHubOidcProvider": {
+   "Type": "AWS::IAM::OIDCProvider",
+   "Properties": {
+    "ClientIdList": [
+     "sts.amazonaws.com"
+    ],
+    "Url": "https://token.actions.githubusercontent.com"
+   },
+   "Metadata": {
+    "aws:cdk:path": "GitHubOidcStack/GitHubOidcProvider"
+   }
+  },
+  "GitHubReadOnlyRole14DC6A3D": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRoleWithWebIdentity",
+       "Condition": {
+        "StringEquals": {
+         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+         "token.actions.githubusercontent.com:sub": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "repo:",
+             {
+              "Ref": "GitHubOwner"
+             },
+             "@",
+             {
+              "Ref": "GitHubOwnerId"
+             },
+             "/",
+             {
+              "Ref": "GitHubRepository1"
+             },
+             "@",
+             {
+              "Ref": "GitHubRepositoryId1"
+             },
+             ":workflow:",
+             {
+              "Ref": "GitHubReadOnlyWorkflow"
+             },
+             ":ref:refs/heads/main"
+            ]
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository2",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository2"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId2"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubReadOnlyWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository3",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository3"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId3"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubReadOnlyWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository4",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository4"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId4"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubReadOnlyWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository5",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository5"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId5"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubReadOnlyWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          }
+         ]
+        }
+       },
+       "Effect": "Allow",
+       "Principal": {
+        "Federated": {
+         "Fn::GetAtt": [
+          "GitHubOidcProvider",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/ReadOnlyAccess"
+       ]
+      ]
+     }
+    ],
+    "RoleName": "GitHubActionsReadOnly"
+   },
+   "Metadata": {
+    "aws:cdk:path": "GitHubOidcStack/GitHubReadOnlyRole/Resource"
+   }
+  },
+  "GitHubCdkDeployRole5F595E0B": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRoleWithWebIdentity",
+       "Condition": {
+        "StringEquals": {
+         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+         "token.actions.githubusercontent.com:sub": [
+          {
+           "Fn::Join": [
+            "",
+            [
+             "repo:",
+             {
+              "Ref": "GitHubOwner"
+             },
+             "@",
+             {
+              "Ref": "GitHubOwnerId"
+             },
+             "/",
+             {
+              "Ref": "GitHubRepository1"
+             },
+             "@",
+             {
+              "Ref": "GitHubRepositoryId1"
+             },
+             ":workflow:",
+             {
+              "Ref": "GitHubCdkDeployWorkflow"
+             },
+             ":ref:refs/heads/main"
+            ]
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository2",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository2"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId2"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubCdkDeployWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository3",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository3"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId3"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubCdkDeployWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository4",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository4"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId4"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubCdkDeployWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          },
+          {
+           "Fn::If": [
+            "HasGitHubRepository5",
+            {
+             "Fn::Join": [
+              "",
+              [
+               "repo:",
+               {
+                "Ref": "GitHubOwner"
+               },
+               "@",
+               {
+                "Ref": "GitHubOwnerId"
+               },
+               "/",
+               {
+                "Ref": "GitHubRepository5"
+               },
+               "@",
+               {
+                "Ref": "GitHubRepositoryId5"
+               },
+               ":workflow:",
+               {
+                "Ref": "GitHubCdkDeployWorkflow"
+               },
+               ":ref:refs/heads/main"
+              ]
+             ]
+            },
+            {
+             "Ref": "AWS::NoValue"
+            }
+           ]
+          }
+         ]
+        }
+       },
+       "Effect": "Allow",
+       "Principal": {
+        "Federated": {
+         "Fn::GetAtt": [
+          "GitHubOidcProvider",
+          "Arn"
+         ]
+        }
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/AdministratorAccess"
+       ]
+      ]
+     }
+    ],
+    "RoleName": "GitHubActionsCdkDeploy"
+   },
+   "Metadata": {
+    "aws:cdk:path": "GitHubOidcStack/GitHubCdkDeployRole/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yWKQQ6CMBAA38K9XbXR+IB68QTBB5iVLskCbU27hQPh76bxNDPJGDD3G5wb3LIe3KwX/sD+EhxmZcfQYUJPQqmGjcGxcAwKt/xm9LDbMbTPh+1SXNlRUn1cqK6VR5W2yLfIoUJ0BFM+reYKxsClmTKzTiUIe4L+zx9Ati8WjAAAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "GitHubOidcStack/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "GitHubReadOnlyRoleArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "GitHubReadOnlyRole14DC6A3D",
+     "Arn"
+    ]
+   }
+  },
+  "GitHubCdkDeployRoleArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "GitHubCdkDeployRole5F595E0B",
+     "Arn"
+    ]
+   }
+  }
+ }
+}
