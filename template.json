@@ -2,114 +2,24 @@
  "Parameters": {
   "GitHubOwner": {
    "Type": "String",
-   "Description": "GitHub account or organization that owns the repositories."
+   "Description": "GitHub account or organization that owns the repository."
   },
   "GitHubOwnerId": {
    "Type": "String",
    "Description": "Immutable numeric GitHub owner ID."
   },
-  "GitHubRepository1": {
+  "GitHubRepository": {
    "Type": "String",
-   "Description": "Required repository name 1."
+   "Description": "GitHub repository name."
   },
-  "GitHubRepositoryId1": {
+  "GitHubRepositoryId": {
    "Type": "String",
-   "Description": "Immutable numeric ID for repository 1."
-  },
-  "GitHubRepository2": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Optional repository name 2."
-  },
-  "GitHubRepositoryId2": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Immutable numeric ID for repository 2."
-  },
-  "GitHubRepository3": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Optional repository name 3."
-  },
-  "GitHubRepositoryId3": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Immutable numeric ID for repository 3."
-  },
-  "GitHubRepository4": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Optional repository name 4."
-  },
-  "GitHubRepositoryId4": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Immutable numeric ID for repository 4."
-  },
-  "GitHubRepository5": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Optional repository name 5."
-  },
-  "GitHubRepositoryId5": {
-   "Type": "String",
-   "Default": "",
-   "Description": "Immutable numeric ID for repository 5."
+   "Description": "Immutable numeric GitHub repository ID."
   },
   "GitHubCdkDeployWorkflow": {
    "Type": "String",
    "Default": "cdk-deploy",
    "Description": "Workflow allowed to assume the CDK deployment role."
-  }
- },
- "Conditions": {
-  "HasGitHubRepository2": {
-   "Fn::Not": [
-    {
-     "Fn::Equals": [
-      {
-       "Ref": "GitHubRepository2"
-      },
-      ""
-     ]
-    }
-   ]
-  },
-  "HasGitHubRepository3": {
-   "Fn::Not": [
-    {
-     "Fn::Equals": [
-      {
-       "Ref": "GitHubRepository3"
-      },
-      ""
-     ]
-    }
-   ]
-  },
-  "HasGitHubRepository4": {
-   "Fn::Not": [
-    {
-     "Fn::Equals": [
-      {
-       "Ref": "GitHubRepository4"
-      },
-      ""
-     ]
-    }
-   ]
-  },
-  "HasGitHubRepository5": {
-   "Fn::Not": [
-    {
-     "Fn::Equals": [
-      {
-       "Ref": "GitHubRepository5"
-      },
-      ""
-     ]
-    }
-   ]
   }
  },
  "Resources": {
@@ -135,180 +45,34 @@
        "Condition": {
         "StringEquals": {
          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-         "token.actions.githubusercontent.com:sub": [
-          {
-           "Fn::Join": [
-            "",
-            [
-             "repo:",
-             {
-              "Ref": "GitHubOwner"
-             },
-             "@",
-             {
-              "Ref": "GitHubOwnerId"
-             },
-             "/",
-             {
-              "Ref": "GitHubRepository1"
-             },
-             "@",
-             {
-              "Ref": "GitHubRepositoryId1"
-             },
-             ":workflow:",
-             {
-              "Ref": "GitHubCdkDeployWorkflow"
-             },
-             ":ref:refs/heads/main"
-            ]
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository2",
+         "token.actions.githubusercontent.com:sub": {
+          "Fn::Join": [
+           "",
+           [
+            "repo:",
             {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository2"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId2"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubCdkDeployWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
+             "Ref": "GitHubOwner"
             },
+            "@",
             {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository3",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository3"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId3"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubCdkDeployWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
+             "Ref": "GitHubOwnerId"
             },
+            "/",
             {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository4",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository4"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId4"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubCdkDeployWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
+             "Ref": "GitHubRepository"
             },
+            "@",
             {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository5",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository5"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId5"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubCdkDeployWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
+             "Ref": "GitHubRepositoryId"
             },
+            ":workflow:",
             {
-             "Ref": "AWS::NoValue"
-            }
+             "Ref": "GitHubCdkDeployWorkflow"
+            },
+            ":ref:refs/heads/main"
            ]
-          }
-         ]
+          ]
+         }
         }
        },
        "Effect": "Allow",
@@ -347,7 +111,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yWKSw6CMBBAz8K+HbFGPUDduILgAcxISzJ8pqadwoJwd9O4eu8lz4C5X6GucEu6d5Oe6QP7S7CflB24xYiLFx9L2MCOhAIr3NKbcIHdDtw8H7aNYSXno+rC7MtaeBRpsnyzHIqD8zCm02pucL5AXY2JSMfMQouH7s8fdjfXaIwAAAA="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yXKTQ6CMBBA4bOwb0csUQ9QN64geAAy0iEZoK3pDywIdzeNq+8tngL1uEFd4R7laBa58geOd8JxEXpyHQa0lCgI3OPAaOHQk2tfT90Fv7GhIHq/UlmLZ4k2p29Op3DeEMzxsqk7XBuoqzkyy5BdYkvQ//0BithiBX8AAAA="
    },
    "Metadata": {
     "aws:cdk:path": "GitHubOidcStack/CDKMetadata/Default"
