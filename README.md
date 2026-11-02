@@ -5,10 +5,9 @@
 - AWS CDKでGitHub Actions用のOIDCプロバイダーとIAMロールを作成します。
 - `template.json`はCloudFormation CLIから利用できる生成済みテンプレートです。
 - ロール：
-  - `GitHubActionsReadOnly`：AWS管理ポリシー`ReadOnlyAccess`
   - `GitHubActionsCdkDeploy`：AWS管理ポリシー`AdministratorAccess`
-- 両ロールは指定したWorkflow、リポジトリ、`main`ブランチに制限されます。
-- Workflowの既定値：ReadOnlyは`copilot-setup`、CDKデプロイは`cdk-deploy`
+- ロールは指定したWorkflow、リポジトリ、`main`ブランチに制限されます。
+- Workflowの既定値：CDKデプロイは`cdk-deploy`
 
 ## GitHub OIDCの設定
 
@@ -72,6 +71,5 @@ ForkからのPRには自動コミットされないため、artifactを取得し
 ## デプロイ
 
 Workflow名を変更する場合は、`--parameter-overrides`に
-`GitHubReadOnlyWorkflow=WORKFLOW名`または
 `GitHubCdkDeployWorkflow=WORKFLOW名`を追加します。更新後も同じ
 `aws cloudformation deploy`コマンドを実行してください。

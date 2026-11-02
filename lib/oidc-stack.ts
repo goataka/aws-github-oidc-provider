@@ -16,9 +16,7 @@ const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
 const MAX_REPOSITORIES = 5;
 const FIRST_REPOSITORY_NUMBER = 1;
 const MAIN_BRANCH = 'main';
-const READ_ONLY_WORKFLOW_DEFAULT = 'copilot-setup';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
-const READ_ONLY_POLICY = 'ReadOnlyAccess';
 const CDK_DEPLOY_POLICY = 'AdministratorAccess';
 
 type RepositoryParameters = {
@@ -33,7 +31,6 @@ type RepositoryScopeParameters = {
 };
 
 type WorkflowParameters = {
-  readOnly: CfnParameter;
   cdkDeploy: CfnParameter;
 };
 
@@ -140,12 +137,6 @@ function createWorkflowParameter(
 
 function createWorkflowParameters(stack: Stack): WorkflowParameters {
   return {
-    readOnly: createWorkflowParameter(
-      stack,
-      'GitHubReadOnlyWorkflow',
-      READ_ONLY_WORKFLOW_DEFAULT,
-      'Workflow allowed to assume the read-only role.',
-    ),
     cdkDeploy: createWorkflowParameter(
       stack,
       'GitHubCdkDeployWorkflow',
@@ -218,43 +209,18 @@ function createRole(
   });
 }
 
-function createRoleConfigurations(
+function createRoleConfiguration(
   workflows: WorkflowParameters,
-): [RoleConfiguration, RoleConfiguration] {
-  return [
-    {
-      id: 'GitHubReadOnlyRole',
-      roleName: 'GitHubActionsReadOnly',
-      workflow: workflows.readOnly,
-      policyName: READ_ONLY_POLICY,
-    },
-    {
-      id: 'GitHubCdkDeployRole',
-      roleName: 'GitHubActionsCdkDeploy',
-      workflow: workflows.cdkDeploy,
-      policyName: CDK_DEPLOY_POLICY,
-    },
-  ];
+): RoleConfiguration {
+  return {
+    id: 'GitHubCdkDeployRole',
+    roleName: 'GitHubActionsCdkDeploy',
+    workflow: workflows.cdkDeploy,
+    policyName: CDK_DEPLOY_POLICY,
+  };
 }
 
-function createRoles(
-  context: RoleCreationContext,
-  workflows: WorkflowParameters,
-): [iam.Role, iam.Role] {
-  const roleConfigurations = createRoleConfigurations(workflows);
-  return roleConfigurations.map((configuration) =>
-    createRole(context, configuration),
-  ) as [iam.Role, iam.Role];
-}
-
-function createRoleOutputs(
-  stack: Stack,
-  readOnlyRole: iam.Role,
-  cdkDeployRole: iam.Role,
-): void {
-  new CfnOutput(stack, 'GitHubReadOnlyRoleArn', {
-    value: readOnlyRole.roleArn,
-  });
+function createRoleOutputs(stack: Stack, cdkDeployRole: iam.Role): void {
   new CfnOutput(stack, 'GitHubCdkDeployRoleArn', {
     value: cdkDeployRole.roleArn,
   });
@@ -274,8 +240,11 @@ export class GitHubOidcStack extends Stack {
       repositoryScope,
       repositories,
     };
-    const [readOnlyRole, cdkDeployRole] = createRoles(roleContext, workflows);
+    const cdkDeployRole = createRole(
+      roleContext,
+      createRoleConfiguration(workflows),
+    );
 
-    createRoleOutputs(this, readOnlyRole, cdkDeployRole);
+    createRoleOutputs(this, cdkDeployRole);
   }
 }
