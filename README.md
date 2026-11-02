@@ -63,10 +63,11 @@ aws cloudformation deploy \
 最大5組までパラメーターを追加します。
 
 CDK変更時のテンプレート更新：pushとpull requestでGitHub Actionsが合成し、
-同一リポジトリのブランチに`template.json`の更新をコミットします。PRの差分に
-この更新が含まれます。合成テンプレートはWorkflow artifactにも保存されます。
-ForkからのPRには自動コミットされないため、artifactを取得してテンプレートを
-反映してください。
+`template.json`に差分がある場合は同一リポジトリのブランチにコミットします。
+PRの差分にこの更新が含まれます。合成結果はartifactとして保存しません。
+既定ブランチ（main）へのpushではコミットしません。ForkからのPRは書き込み権限が
+ないため、コミットせず警告を表示します。その場合は`pnpm synth`を実行し、
+生成された`template.json`をコミットしてください。
 
 ## デプロイ
 
