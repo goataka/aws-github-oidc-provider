@@ -56,11 +56,6 @@
    "Default": "",
    "Description": "Immutable numeric ID for repository 5."
   },
-  "GitHubReadOnlyWorkflow": {
-   "Type": "String",
-   "Default": "copilot-setup",
-   "Description": "Workflow allowed to assume the read-only role."
-  },
   "GitHubCdkDeployWorkflow": {
    "Type": "String",
    "Default": "cdk-deploy",
@@ -128,225 +123,6 @@
    },
    "Metadata": {
     "aws:cdk:path": "GitHubOidcStack/GitHubOidcProvider"
-   }
-  },
-  "GitHubReadOnlyRole14DC6A3D": {
-   "Type": "AWS::IAM::Role",
-   "Properties": {
-    "AssumeRolePolicyDocument": {
-     "Statement": [
-      {
-       "Action": "sts:AssumeRoleWithWebIdentity",
-       "Condition": {
-        "StringEquals": {
-         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-         "token.actions.githubusercontent.com:sub": [
-          {
-           "Fn::Join": [
-            "",
-            [
-             "repo:",
-             {
-              "Ref": "GitHubOwner"
-             },
-             "@",
-             {
-              "Ref": "GitHubOwnerId"
-             },
-             "/",
-             {
-              "Ref": "GitHubRepository1"
-             },
-             "@",
-             {
-              "Ref": "GitHubRepositoryId1"
-             },
-             ":workflow:",
-             {
-              "Ref": "GitHubReadOnlyWorkflow"
-             },
-             ":ref:refs/heads/main"
-            ]
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository2",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository2"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId2"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubReadOnlyWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
-            },
-            {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository3",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository3"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId3"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubReadOnlyWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
-            },
-            {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository4",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository4"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId4"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubReadOnlyWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
-            },
-            {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          },
-          {
-           "Fn::If": [
-            "HasGitHubRepository5",
-            {
-             "Fn::Join": [
-              "",
-              [
-               "repo:",
-               {
-                "Ref": "GitHubOwner"
-               },
-               "@",
-               {
-                "Ref": "GitHubOwnerId"
-               },
-               "/",
-               {
-                "Ref": "GitHubRepository5"
-               },
-               "@",
-               {
-                "Ref": "GitHubRepositoryId5"
-               },
-               ":workflow:",
-               {
-                "Ref": "GitHubReadOnlyWorkflow"
-               },
-               ":ref:refs/heads/main"
-              ]
-             ]
-            },
-            {
-             "Ref": "AWS::NoValue"
-            }
-           ]
-          }
-         ]
-        }
-       },
-       "Effect": "Allow",
-       "Principal": {
-        "Federated": {
-         "Fn::GetAtt": [
-          "GitHubOidcProvider",
-          "Arn"
-         ]
-        }
-       }
-      }
-     ],
-     "Version": "2012-10-17"
-    },
-    "ManagedPolicyArns": [
-     {
-      "Fn::Join": [
-       "",
-       [
-        "arn:",
-        {
-         "Ref": "AWS::Partition"
-        },
-        ":iam::aws:policy/ReadOnlyAccess"
-       ]
-      ]
-     }
-    ],
-    "RoleName": "GitHubActionsReadOnly"
-   },
-   "Metadata": {
-    "aws:cdk:path": "GitHubOidcStack/GitHubReadOnlyRole/Resource"
    }
   },
   "GitHubCdkDeployRole5F595E0B": {
@@ -571,7 +347,7 @@
   "CDKMetadata": {
    "Type": "AWS::CDK::Metadata",
    "Properties": {
-    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yWKQQ6CMBAA38K9XbXR+IB68QTBB5iVLskCbU27hQPh76bxNDPJGDD3G5wb3LIe3KwX/sD+EhxmZcfQYUJPQqmGjcGxcAwKt/xm9LDbMbTPh+1SXNlRUn1cqK6VR5W2yLfIoUJ0BFM+reYKxsClmTKzTiUIe4L+zx9Ati8WjAAAAA=="
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/yWKSw6CMBBAz8K+HbFGPUDduILgAcxISzJ8pqadwoJwd9O4eu8lz4C5X6GucEu6d5Oe6QP7S7CflB24xYiLFx9L2MCOhAIr3NKbcIHdDtw8H7aNYSXno+rC7MtaeBRpsnyzHIqD8zCm02pucL5AXY2JSMfMQouH7s8fdjfXaIwAAAA="
    },
    "Metadata": {
     "aws:cdk:path": "GitHubOidcStack/CDKMetadata/Default"
@@ -579,14 +355,6 @@
   }
  },
  "Outputs": {
-  "GitHubReadOnlyRoleArn": {
-   "Value": {
-    "Fn::GetAtt": [
-     "GitHubReadOnlyRole14DC6A3D",
-     "Arn"
-    ]
-   }
-  },
   "GitHubCdkDeployRoleArn": {
    "Value": {
     "Fn::GetAtt": [
