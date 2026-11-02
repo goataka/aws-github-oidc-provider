@@ -1,148 +1,47 @@
-import {
-  Aws,
-  CfnCondition,
-  CfnOutput,
-  CfnParameter,
-  Fn,
-  Stack,
-  StackProps,
-} from 'aws-cdk-lib';
+import { CfnOutput, CfnParameter, Fn, Stack, StackProps } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
-const MAX_REPOSITORIES = 5;
-const FIRST_REPOSITORY_NUMBER = 1;
 const MAIN_BRANCH = 'main';
-const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
+const CDK_DEPLOY_ROLE_NAME = 'GitHubActionsCdkDeploy';
+const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
 const CDK_DEPLOY_POLICY = 'AdministratorAccess';
+const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
 
-type RepositoryParameters = {
-  repository: CfnParameter;
-  repositoryId: CfnParameter;
-  condition?: CfnCondition;
-};
-
-type RepositoryScopeParameters = {
+type GitHubParameters = {
   owner: CfnParameter;
   ownerId: CfnParameter;
+  repository: CfnParameter;
+  repositoryId: CfnParameter;
+  cdkDeployWorkflow: CfnParameter;
 };
 
-type WorkflowParameters = {
-  cdkDeploy: CfnParameter;
-};
-
-type RoleConfiguration = {
-  id: string;
-  roleName: string;
-  workflow: CfnParameter;
-  policyName: string;
-};
-
-type RoleCreationContext = {
-  stack: Stack;
-  provider: iam.CfnOIDCProvider;
-  repositoryScope: RepositoryScopeParameters;
-  repositories: RepositoryParameters[];
-};
-
-function createRepositoryParameter(
-  stack: Stack,
-  parameterName: string,
-  description: string,
-  optional: boolean,
-): CfnParameter {
-  return new CfnParameter(stack, parameterName, {
-    type: 'String',
-    description,
-    ...(optional ? { default: '' } : {}),
-  });
-}
-
-function createRepositoryCondition(
-  stack: Stack,
-  repository: CfnParameter,
-  repositoryNumber: number,
-): CfnCondition {
-  return new CfnCondition(stack, `HasGitHubRepository${repositoryNumber}`, {
-    expression: Fn.conditionNot(
-      Fn.conditionEquals(repository.valueAsString, ''),
-    ),
-  });
-}
-
-function createRepositoryParameterSet(
-  stack: Stack,
-  repositoryNumber: number,
-): RepositoryParameters {
-  const isOptional = repositoryNumber > FIRST_REPOSITORY_NUMBER;
-  const requirement = isOptional ? 'Optional' : 'Required';
-  const repository = createRepositoryParameter(
-    stack,
-    `GitHubRepository${repositoryNumber}`,
-    `${requirement} repository name ${repositoryNumber}.`,
-    isOptional,
-  );
-  const repositoryId = createRepositoryParameter(
-    stack,
-    `GitHubRepositoryId${repositoryNumber}`,
-    `Immutable numeric ID for repository ${repositoryNumber}.`,
-    isOptional,
-  );
-  const condition = isOptional
-    ? createRepositoryCondition(stack, repository, repositoryNumber)
-    : undefined;
-
-  return { repository, repositoryId, condition };
-}
-
-function createRepositoryParameters(stack: Stack): RepositoryParameters[] {
-  return Array.from({ length: MAX_REPOSITORIES }, (_, repositoryIndex) =>
-    createRepositoryParameterSet(
-      stack,
-      repositoryIndex + FIRST_REPOSITORY_NUMBER,
-    ),
-  );
-}
-
-function createRepositoryScopeParameters(
-  stack: Stack,
-): RepositoryScopeParameters {
+function createGitHubParameters(stack: Stack): GitHubParameters {
   return {
     owner: new CfnParameter(stack, 'GitHubOwner', {
       type: 'String',
-      description: 'GitHub account or organization that owns the repositories.',
+      description: 'GitHub account or organization that owns the repository.',
     }),
     ownerId: new CfnParameter(stack, 'GitHubOwnerId', {
       type: 'String',
       description: 'Immutable numeric GitHub owner ID.',
     }),
-  };
-}
-
-function createWorkflowParameter(
-  stack: Stack,
-  parameterName: string,
-  defaultValue: string,
-  description: string,
-): CfnParameter {
-  return new CfnParameter(stack, parameterName, {
-    type: 'String',
-    default: defaultValue,
-    description,
-  });
-}
-
-function createWorkflowParameters(stack: Stack): WorkflowParameters {
-  return {
-    cdkDeploy: createWorkflowParameter(
-      stack,
-      'GitHubCdkDeployWorkflow',
-      CDK_DEPLOY_WORKFLOW_DEFAULT,
-      'Workflow allowed to assume the CDK deployment role.',
-    ),
+    repository: new CfnParameter(stack, 'GitHubRepository', {
+      type: 'String',
+      description: 'GitHub repository name.',
+    }),
+    repositoryId: new CfnParameter(stack, 'GitHubRepositoryId', {
+      type: 'String',
+      description: 'Immutable numeric GitHub repository ID.',
+    }),
+    cdkDeployWorkflow: new CfnParameter(stack, 'GitHubCdkDeployWorkflow', {
+      type: 'String',
+      default: CDK_DEPLOY_WORKFLOW_DEFAULT,
+      description: 'Workflow allowed to assume the CDK deployment role.',
+    }),
   };
 }
 
@@ -153,76 +52,42 @@ function createOidcProvider(stack: Stack): iam.CfnOIDCProvider {
   });
 }
 
-function createSubjects(
-  repositoryScope: RepositoryScopeParameters,
-  repositories: RepositoryParameters[],
-  workflow: CfnParameter,
-): (string | ReturnType<typeof Fn.conditionIf>)[] {
-  return repositories.map(({ repository, repositoryId, condition }) => {
-    const subject = Fn.join('', [
-      'repo:',
-      repositoryScope.owner.valueAsString,
-      '@',
-      repositoryScope.ownerId.valueAsString,
-      '/',
-      repository.valueAsString,
-      '@',
-      repositoryId.valueAsString,
-      ':workflow:',
-      workflow.valueAsString,
-      `:ref:refs/heads/${MAIN_BRANCH}`,
-    ]);
-
-    if (condition) {
-      return Fn.conditionIf(condition.logicalId, subject, Aws.NO_VALUE);
-    }
-
-    return subject;
-  });
+function createSubject(parameters: GitHubParameters): string {
+  return Fn.join('', [
+    'repo:',
+    parameters.owner.valueAsString,
+    '@',
+    parameters.ownerId.valueAsString,
+    '/',
+    parameters.repository.valueAsString,
+    '@',
+    parameters.repositoryId.valueAsString,
+    ':workflow:',
+    parameters.cdkDeployWorkflow.valueAsString,
+    `:ref:refs/heads/${MAIN_BRANCH}`,
+  ]);
 }
 
-function createRole(
-  context: RoleCreationContext,
-  configuration: RoleConfiguration,
+function createCdkDeployRole(
+  stack: Stack,
+  provider: iam.CfnOIDCProvider,
+  parameters: GitHubParameters,
 ): iam.Role {
-  const conditions = {
-    StringEquals: {
-      [`${GITHUB_OIDC_HOST}:aud`]: GITHUB_OIDC_AUDIENCE,
-      [`${GITHUB_OIDC_HOST}:sub`]: createSubjects(
-        context.repositoryScope,
-        context.repositories,
-        configuration.workflow,
-      ),
-    },
-  };
-
-  return new iam.Role(context.stack, configuration.id, {
-    roleName: configuration.roleName,
+  return new iam.Role(stack, CDK_DEPLOY_ROLE_ID, {
+    roleName: CDK_DEPLOY_ROLE_NAME,
     assumedBy: new iam.FederatedPrincipal(
-      context.provider.attrArn,
-      conditions,
+      provider.attrArn,
+      {
+        StringEquals: {
+          [`${GITHUB_OIDC_HOST}:aud`]: GITHUB_OIDC_AUDIENCE,
+          [`${GITHUB_OIDC_HOST}:sub`]: createSubject(parameters),
+        },
+      },
       'sts:AssumeRoleWithWebIdentity',
     ),
     managedPolicies: [
-      iam.ManagedPolicy.fromAwsManagedPolicyName(configuration.policyName),
+      iam.ManagedPolicy.fromAwsManagedPolicyName(CDK_DEPLOY_POLICY),
     ],
-  });
-}
-
-function createRoleConfiguration(
-  workflows: WorkflowParameters,
-): RoleConfiguration {
-  return {
-    id: 'GitHubCdkDeployRole',
-    roleName: 'GitHubActionsCdkDeploy',
-    workflow: workflows.cdkDeploy,
-    policyName: CDK_DEPLOY_POLICY,
-  };
-}
-
-function createRoleOutputs(stack: Stack, cdkDeployRole: iam.Role): void {
-  new CfnOutput(stack, 'GitHubCdkDeployRoleArn', {
-    value: cdkDeployRole.roleArn,
   });
 }
 
@@ -230,21 +95,12 @@ export class GitHubOidcStack extends Stack {
   constructor(scope: Construct, constructId: string, stackProps?: StackProps) {
     super(scope, constructId, stackProps);
 
-    const repositoryScope = createRepositoryScopeParameters(this);
-    const repositories = createRepositoryParameters(this);
-    const workflows = createWorkflowParameters(this);
+    const parameters = createGitHubParameters(this);
     const provider = createOidcProvider(this);
-    const roleContext: RoleCreationContext = {
-      stack: this,
-      provider,
-      repositoryScope,
-      repositories,
-    };
-    const cdkDeployRole = createRole(
-      roleContext,
-      createRoleConfiguration(workflows),
-    );
+    const cdkDeployRole = createCdkDeployRole(this, provider, parameters);
 
-    createRoleOutputs(this, cdkDeployRole);
+    new CfnOutput(this, 'GitHubCdkDeployRoleArn', {
+      value: cdkDeployRole.roleArn,
+    });
   }
 }
