@@ -1,7 +1,7 @@
 Parameters:
   GitHubRepository:
     Type: String
-    AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]+$
+    AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,41}$
     ConstraintDescription: Must be OWNER/REPOSITORY using letters, numbers, hyphens, underscores, and periods.
     Description: GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.
   GitHubCdkDeployWorkflow:
@@ -47,6 +47,15 @@ Resources:
             - - "arn:"
               - Ref: AWS::Partition
               - :iam::aws:policy/AdministratorAccess
+      RoleName:
+        Fn::Join:
+          - "-"
+          - - GitHubActionsCdkDeploy
+            - Fn::Select:
+                - 1
+                - Fn::Split:
+                    - /
+                    - Ref: GitHubRepository
     Metadata:
       aws:cdk:path: GitHubOidcStack/GitHubCdkDeployRole/Resource
   CDKMetadata:
