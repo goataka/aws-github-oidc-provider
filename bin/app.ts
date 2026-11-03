@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { App, DefaultStackSynthesizer } from 'aws-cdk-lib';
-import { GitHubOidcProviderStack, GitHubOidcRoleStack } from '../lib/oidc-stack';
+import { GitHubOidcProviderStack, GitHubOidcRepositoryStack } from '../lib/oidc-stack';
 
 const app = new App();
 
@@ -15,4 +15,4 @@ const stackProps = {
 };
 
 new GitHubOidcProviderStack(app, 'GitHubOidcProviderStack', stackProps);
-new GitHubOidcRoleStack(app, 'GitHubOidcRoleStack', stackProps);
+new GitHubOidcRepositoryStack(app, 'GitHubOidcRepositoryStack', stackProps);

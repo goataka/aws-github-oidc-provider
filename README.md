@@ -5,7 +5,7 @@
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
 - **テンプレート：** 次の2つを**CloudFormation**で利用します。
   - [`cloudformation/github-oidc-provider.yml`](cloudformation/github-oidc-provider.yml)：OIDCプロバイダー。アカウントに1回だけデプロイします。
-  - [`cloudformation/github-oidc-role.yml`](cloudformation/github-oidc-role.yml)：ロール。リポジトリごとにデプロイします。
+  - [`cloudformation/github-oidc-repository.yml`](cloudformation/github-oidc-repository.yml)：ロール。リポジトリごとにデプロイします。
 - **詳細：** 権限や設定の詳細は[詳細ドキュメント](docs/details.md)を参照してください。
 
 ## 利用手順
@@ -30,17 +30,17 @@ curl --fail --location --silent --show-error \
 
 ```sh
 curl --fail --location --silent --show-error \
-  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-role.yml \
-  --output github-oidc-role.yml \
+  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-repository.yml \
+  --output github-oidc-repository.yml \
 && aws cloudformation deploy \
-  --template-file github-oidc-role.yml \
-  --stack-name github-oidc-role-REPOSITORY \
+  --template-file github-oidc-repository.yml \
+  --stack-name github-oidc-repository-REPOSITORY \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
     GitHubRepository=OWNER/REPOSITORY
 ```
 
-- **スタック名：** リポジトリごとに別の名前にします。例：`github-oidc-role-example-repo`
+- **スタック名：** リポジトリごとに別の名前にします。例：`github-oidc-repository-example-repo`
 - **失敗時：** `curl`が失敗すると、`aws cloudformation deploy`は実行されません。
 - **実行環境：** リージョンは実行環境の設定に従います。
 
@@ -65,54 +65,8 @@ curl --fail --location --silent --show-error \
 
 ### サンプル
 
-`.github/workflows/cdk-deploy.yml`の例です。`123456789012`、`example-repo`、`ap-northeast-1`は環境に合わせて置き換えてください。
-
-```yaml
-name: cdk-deploy
-
-on:
-  push:
-    branches: [main]
-
-permissions:
-  contents: read
-  id-token: write
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 26.13.0
-
-      - name: Enable pnpm
-        run: corepack enable
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Assume CDK deploy role
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: arn:aws:iam::123456789012:role/GHACdkDeploy-example-repo
-          aws-region: ap-northeast-1
-
-      - name: Bootstrap CDK (first run only)
-        run: pnpm exec cdk bootstrap --qualifier hnb659fds
-
-      - name: Deploy
-        run: pnpm exec cdk deploy --all --require-approval never
-```
-
-- **Workflow名：** この例の`name: cdk-deploy`は、`CdkDeployGitHubWorkflow`の既定値と一致しています。
-- **ロール名：** `role-to-assume`は`GHACdkDeploy-リポジトリ名`です。
+- **ファイル：** [`examples/cdk-deploy.yml`](examples/cdk-deploy.yml)を、利用するリポジトリの`.github/workflows/`に配置します。
+- **置き換え：** `123456789012`、`example-repo`、`ap-northeast-1`は環境に合わせて置き換えてください。
 
 ## 注意
 

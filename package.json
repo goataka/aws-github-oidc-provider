@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.16.1",
   "scripts": {
-    "synth": "mkdir -p cloudformation && cdk synth GitHubOidcProviderStack > cloudformation/github-oidc-provider.yml && cdk synth GitHubOidcRoleStack > cloudformation/github-oidc-role.yml",
+    "synth": "mkdir -p cloudformation && cdk synth GitHubOidcProviderStack > cloudformation/github-oidc-provider.yml && cdk synth GitHubOidcRepositoryStack > cloudformation/github-oidc-repository.yml",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

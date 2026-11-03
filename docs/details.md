@@ -46,7 +46,7 @@
 
 - **プロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。
 - **分割の理由：** プロバイダーとロールを同じスタックに入れると、2つ目のリポジトリで同じプロバイダーを作成しようとして失敗します。また、プロバイダーのスタックを削除すると、他のリポジトリのロールが使えなくなります。
-- **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRoleStack`に分けています。ロールは、プロバイダーのARNを文字列で参照するため、スタック間の依存はありません。
+- **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRepositoryStack`に分けています。ロールは、プロバイダーのARNを文字列で参照するため、スタック間の依存はありません。
 - **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
 - **権限：** プロバイダーのスタックには`CAPABILITY_IAM`が必要です。ロールのスタックは、ロール名を指定しているため`CAPABILITY_NAMED_IAM`が必要です。
 
@@ -87,7 +87,7 @@
 
 - **生成元：** `lib/oidc-stack.ts`を`pnpm synth`で合成し、CDKの標準出力をYAMLとして保存します。
   - `GitHubOidcProviderStack`：`cloudformation/github-oidc-provider.yml`
-  - `GitHubOidcRoleStack`：`cloudformation/github-oidc-role.yml`
+  - `GitHubOidcRepositoryStack`：`cloudformation/github-oidc-repository.yml`
 - **実行タイミング：** pushとpull requestのたびに、型チェックと`pnpm synth`を実行します。
 - **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。`main`への pushでも同じです。
 - **PRの差分：** 生成された更新はPRの差分に含まれます。

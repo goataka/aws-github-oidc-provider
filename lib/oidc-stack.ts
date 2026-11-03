@@ -289,7 +289,7 @@ export class GitHubOidcProviderStack extends Stack {
   }
 }
 
-export class GitHubOidcRoleStack extends Stack {
+export class GitHubOidcRepositoryStack extends Stack {
   constructor(scope: Construct, constructId: string, stackProps?: StackProps) {
     super(scope, constructId, stackProps);
 
