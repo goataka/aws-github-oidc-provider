@@ -40,7 +40,7 @@ Resources:
                 Fn::GetAtt:
                   - GitHubOidcProvider
                   - Arn
-        Version: 2012-10-17
+        Version: "2012-10-17"
       ManagedPolicyArns:
         - Fn::Join:
             - ""
@@ -62,3 +62,4 @@ Outputs:
       Fn::GetAtt:
         - GitHubCdkDeployRole5F595E0B
         - Arn
+
