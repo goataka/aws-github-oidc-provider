@@ -6,7 +6,6 @@ const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
 const MAIN_BRANCH = 'main';
-const CDK_DEPLOY_ROLE_NAME = 'GitHubActionsCdkDeployRole';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
 const CDK_DEPLOY_POLICY = 'AdministratorAccess';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
@@ -59,7 +58,6 @@ function createCdkDeployRole(
   parameters: GitHubParameters,
 ): iam.Role {
   return new iam.Role(stack, CDK_DEPLOY_ROLE_ID, {
-    roleName: CDK_DEPLOY_ROLE_NAME,
     assumedBy: new iam.FederatedPrincipal(
       provider.attrArn,
       {
