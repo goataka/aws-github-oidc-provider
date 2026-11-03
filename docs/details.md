@@ -4,6 +4,7 @@
 
 - [GitHub OIDCの信頼条件](#github-oidcの信頼条件)
 - [名前ベースの注意](#名前ベースの注意)
+- [OIDCプロバイダーとロールの分割](#oidcプロバイダーとロールの分割)
 - [ロールと出力](#ロールと出力)
 - [権限の範囲](#権限の範囲)
 - [テンプレートの更新](#テンプレートの更新)
@@ -30,13 +31,16 @@
 
 ### Environmentの注意
 
-- **ref：** Environment指定時のsubjectには`ref`が含まれません。対象Environmentの**Deployment branches**で`main`だけを許可してください。
+- **ref：** Environment指定時のsubjectには`ref`が含まれません。
+  - **対応：** 対象Environmentの**Deployment branches**で`main`だけを許可してください。
 - **確認：** 実際のsubjectは、テスト用のWorkflowでOIDCトークンを確認してから利用してください。
 
 ### その他の注意
 
-- **immutable subject：** **無効**のままにしてください。有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
-- **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。例：`deploy-prod`
+- **immutable subject：** **無効**のままにしてください。
+  - **理由：** 有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
+- **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。
+  - **例：** `deploy-prod`
 
 ## 名前ベースの注意
 
@@ -47,15 +51,23 @@
 ## OIDCプロバイダーとロールの分割
 
 - **プロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。
-- **分割の理由：** プロバイダーとロールを同じスタックに入れると、2つ目のリポジトリで同じプロバイダーを作成しようとして失敗します。また、プロバイダーのスタックを削除すると、他のリポジトリのロールが使えなくなります。
-- **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRepositoryStack`に分けています。ロールは、プロバイダーのARNを文字列で参照するため、スタック間の依存はありません。
-- **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。例：`arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com`プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
-- **権限：** プロバイダーのスタックには`CAPABILITY_IAM`が必要です。ロールのスタックは、ロール名を指定しているため`CAPABILITY_NAMED_IAM`が必要です。
+- **分割の理由：** プロバイダーとロールを同じスタックに入れると、次の問題があります。
+  - **2つ目のリポジトリ：** 同じプロバイダーを作成しようとして失敗します。
+  - **削除：** プロバイダーのスタックを削除すると、他のリポジトリのロールが使えなくなります。
+- **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRepositoryStack`に分けています。
+  - **参照方法：** ロールは、プロバイダーのARNを文字列で参照します。そのため、スタック間の依存はありません。
+- **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。
+  - **例：** `arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com`
+  - **確認：** プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
+- **権限：** プロバイダーのスタックには`CAPABILITY_IAM`が必要です。
+  - **ロール：** ロール名を指定しているため、ロールのスタックには`CAPABILITY_NAMED_IAM`が必要です。
 
 ## ロールと出力
 
-- **ロール名：** `GHACdkDeploy-リポジトリ名`です。例：`octo-org/example-repo`の場合は`GHACdkDeploy-example-repo`です。
-- **リポジトリ名の上限：** `REPOSITORY`部分は51文字以内です。IAMのロール名の上限は64文字のため、接頭辞と区切りを除いた長さです。
+- **ロール名：** `GHACdkDeploy-リポジトリ名`です。
+  - **例：** `octo-org/example-repo`の場合は`GHACdkDeploy-example-repo`です。
+- **リポジトリ名の上限：** `REPOSITORY`部分は51文字以内です。
+  - **理由：** IAMのロール名の上限は64文字のため、接頭辞と区切りを除いた長さです。
 - **出力：** スタックの出力`GHACdkDeployRoleArn`にロールのARNを出力します。
 - **権限の構成：** 次の2つのインラインポリシーに分けています。
   - **`CdkDeployAccess`：** `cdk deploy`に必要な権限です。
@@ -87,9 +99,12 @@
 
 ### 注意
 
-- **対象の範囲：** `CDKToolkit`という既定のスタック名と、既定の資産用の名前だけを対象にしています。`--toolkit-stack-name`などを変えた場合は、権限の対象も変える必要があります。
-- **検証：** 権限の一覧は、CDKのブートストラップで作られるリソースから導いています。実際の`cdk bootstrap`で不足が出た場合は、この一覧を追加してください。
-- **強い権限になる点：** `cdk deploy`で引き受けるブートストラップのデプロイロールは、CDKの既定では広い権限を持つ実行ロールを使います。そのため、`sts:AssumeRole`の範囲でも実質的に強い権限になります。
+- **対象の範囲：** `CDKToolkit`という既定のスタック名と、既定の資産用の名前だけを対象にしています。
+  - **変更時：** `--toolkit-stack-name`などを変えた場合は、権限の対象も変える必要があります。
+- **検証：** 権限の一覧は、CDKのブートストラップで作られるリソースから導いています。
+  - **追加：** 実際の`cdk bootstrap`で不足が出た場合は、この一覧を追加してください。
+- **強い権限になる点：** `cdk deploy`で引き受けるブートストラップのデプロイロールは、CDKの既定では広い権限を持つ実行ロールを使います。
+  - **理由：** そのため、`sts:AssumeRole`の範囲でも実質的に強い権限になります。
 
 ## テンプレートの更新
 
@@ -97,11 +112,15 @@
   - `GitHubOidcProviderStack`：`cloudformation/github-oidc-provider.yml`
   - `GitHubOidcRepositoryStack`：`cloudformation/github-oidc-repository.yml`
 - **実行タイミング：** pushとpull requestのたびに、型チェックと`pnpm synth`を実行します。
-- **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。`main`への pushでも同じです。
+- **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。
+  - **main：** `main`への`push`でも同じです。
 - **PRの差分：** 生成された更新はPRの差分に含まれます。
-- **Fork：** ForkからのPRは書き込み権限がないためコミットしません。警告を表示するので、`pnpm synth`を実行し、生成された`cloudformation/`内のYAMLをコミットしてください。
+- **Fork：** ForkからのPRは書き込み権限がないため、コミットしません。
+  - **警告：** Workflowで警告を表示します。
+  - **対応：** `pnpm synth`を実行し、生成された`cloudformation/`内のYAMLをコミットしてください。
 
 ## Workflow名の変更
 
 - **パラメーター：** `CdkDeployGitHubWorkflow`で指定します。ロールのスタックにだけ適用します。
-- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、ロールのスタックで`aws cloudformation deploy`を実行します。例：`CdkDeployGitHubWorkflow=deploy-prod`
+- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、ロールのスタックで`aws cloudformation deploy`を実行します。
+  - **例：** `CdkDeployGitHubWorkflow=deploy-prod`
