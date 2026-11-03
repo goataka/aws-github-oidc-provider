@@ -1,19 +1,31 @@
 Parameters:
   GitHubRepository:
     Type: String
-    AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,41}$
+    AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,51}$
     ConstraintDescription: Must be OWNER/REPOSITORY using letters, numbers, hyphens, underscores, and periods.
     Description: GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.
   GitHubCdkDeployWorkflow:
     Type: String
     Default: cdk-deploy
-    Description: "Workflow name allowed to assume the CDK deployment role. Use the name: field, not the file name."
+    Description: "Workflow name allowed to assume the CDK deployment role when GitHubEnvironment is empty. Use the name: field, not the file name."
+  GitHubEnvironment:
+    Type: String
+    Default: ""
+    AllowedPattern: ^[A-Za-z0-9._-]*$
+    ConstraintDescription: Use letters, numbers, hyphens, underscores, and periods, or leave empty.
+    Description: GitHub Environment name. When set, only jobs using this environment can assume the role. When empty, the workflow and main branch are used instead.
   CdkBootstrapQualifier:
     Type: String
     Default: hnb659fds
     AllowedPattern: ^[A-Za-z0-9]{1,10}$
     ConstraintDescription: Must be 1 to 10 letters or numbers.
     Description: Qualifier used by cdk bootstrap. Must match the --qualifier value used for the target account.
+Conditions:
+  HasGitHubEnvironment:
+    Fn::Not:
+      - Fn::Equals:
+          - Ref: GitHubEnvironment
+          - ""
 Resources:
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -33,13 +45,21 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
                 token.actions.githubusercontent.com:sub:
-                  Fn::Join:
-                    - ""
-                    - - "repo:"
-                      - Ref: GitHubRepository
-                      - ":workflow:"
-                      - Ref: GitHubCdkDeployWorkflow
-                      - :ref:refs/heads/main
+                  Fn::If:
+                    - HasGitHubEnvironment
+                    - Fn::Join:
+                        - ""
+                        - - "repo:"
+                          - Ref: GitHubRepository
+                          - ":environment:"
+                          - Ref: GitHubEnvironment
+                    - Fn::Join:
+                        - ""
+                        - - "repo:"
+                          - Ref: GitHubRepository
+                          - ":workflow:"
+                          - Ref: GitHubCdkDeployWorkflow
+                          - :ref:refs/heads/main
             Effect: Allow
             Principal:
               Federated:
@@ -210,7 +230,7 @@ Resources:
       RoleName:
         Fn::Join:
           - "-"
-          - - GitHubActionsCdkDeploy
+          - - GHACdkDeploy
             - Fn::Select:
                 - 1
                 - Fn::Split:
@@ -221,11 +241,11 @@ Resources:
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
-      Analytics: v2:deflate64:H4sIAAAAAAAA/yXKTQ6CMBBA4bOwb0csUQ9QN64geAAy0iEZoK3pDywIdzeNq+8tngL1uEFd4R7laBa58geOd8JxEXpyHQa0lCgI3OPAaOHQk2tfT90Fv7GhIHq/UlmLZ4k2p29Op3DeEMzxsqk7XBuoqzkyy5BdYkvQ//0BithiBX8AAAA=
+      Analytics: v2:deflate64:H4sIAAAAAAAA/yWKSw6CMBBAz8K+HbFGPUDduILgAcxISzJ8pqadwoJwd9O4eu8lz4C5X6GucEu6d5Oe6QP7S7CflB24xYiLFx9L2MCOhAIr3NKbcIHdDtw8H7aNYSXno+rC7MtaeBRpsnyzHIqD8zCm02pucL5AXY2JSMfMQouH7s8fdjfXaIwAAAA=
     Metadata:
       aws:cdk:path: GitHubOidcStack/CDKMetadata/Default
 Outputs:
-  GitHubCdkDeployRoleArn:
+  GHACdkDeployRoleArn:
     Value:
       Fn::GetAtt:
         - GitHubCdkDeployRole5F595E0B
