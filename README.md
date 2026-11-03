@@ -5,6 +5,7 @@
 - [概要](#概要)
 - [GitHub OIDCの設定](#github-oidcの設定)
 - [AWS CloudShellからのセットアップ](#aws-cloudshellからのセットアップ)
+- [パラメーター](#パラメーター)
 - [テンプレートの更新](#テンプレートの更新)
 - [Workflow名の変更](#workflow名の変更)
 
@@ -35,7 +36,7 @@
 repo:OWNER/REPOSITORY:workflow:WORKFLOW_NAME:ref:refs/heads/main
 ```
 
-- **リポジトリ：** `GitHubOwner`と`GitHubRepository`で名前を指定します。
+- **リポジトリ：** `GitHubRepository`に`OWNER/REPOSITORY`形式で指定します。
 - **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。
 - **権限設定：** Workflowには`permissions: id-token: write`を設定します。
 - **immutable subject：** **無効**のままにしてください。有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
@@ -62,11 +63,10 @@ aws cloudformation deploy \
   --stack-name github-actions-oidc \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
-    GitHubOwner=OWNER \
-    GitHubRepository=REPOSITORY
+    GitHubRepository=OWNER/REPOSITORY
 ```
 
-- **パラメーター：** `OWNER`と`REPOSITORY`を環境に合わせて置き換えます。
+- **パラメーター：** `OWNER/REPOSITORY`を環境に合わせて置き換えます。
 - **対象の変更：** 別のリポジトリを許可する場合は、パラメーターを変更して同じスタックを更新します。
 - **注意：** OIDCプロバイダーはアカウントに1つだけ作成できるため、同じテンプレートを別のスタック名で重ねて作成しないでください。
 
@@ -79,6 +79,11 @@ aws cloudformation deploy \
 - **artifact：** 合成結果はartifactとして保存しません。
 - **既定ブランチ：** `main`へのpushではコミットしません。
 - **Fork：** ForkからのPRは書き込み権限がないためコミットしません。警告を表示するので、`pnpm synth`を実行し、生成された`cloudformation/github-oidc.yml`をコミットしてください。
+
+## パラメーター
+
+- **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。例：`octo-org/example-repo`
+- **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。Workflowの`name`を指定します。
 
 ## Workflow名の変更
 

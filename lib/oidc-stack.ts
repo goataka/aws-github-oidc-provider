@@ -10,27 +10,28 @@ const CDK_DEPLOY_ROLE_NAME = 'GitHubActionsCdkDeploy';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
 const CDK_DEPLOY_POLICY = 'AdministratorAccess';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
+const REPOSITORY_PATTERN = '^[A-Za-z0-9-]+/[A-Za-z0-9_.-]+$';
 
 type GitHubParameters = {
-  owner: CfnParameter;
   repository: CfnParameter;
   cdkDeployWorkflow: CfnParameter;
 };
 
 function createGitHubParameters(stack: Stack): GitHubParameters {
   return {
-    owner: new CfnParameter(stack, 'GitHubOwner', {
-      type: 'String',
-      description: 'GitHub account or organization that owns the repository.',
-    }),
     repository: new CfnParameter(stack, 'GitHubRepository', {
       type: 'String',
-      description: 'GitHub repository name.',
+      allowedPattern: REPOSITORY_PATTERN,
+      constraintDescription:
+        'Must be OWNER/REPOSITORY using letters, numbers, hyphens, underscores, and periods.',
+      description:
+        'GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.',
     }),
     cdkDeployWorkflow: new CfnParameter(stack, 'GitHubCdkDeployWorkflow', {
       type: 'String',
       default: CDK_DEPLOY_WORKFLOW_DEFAULT,
-      description: 'Workflow allowed to assume the CDK deployment role.',
+      description:
+        'Workflow name allowed to assume the CDK deployment role. Use the name: field, not the file name.',
     }),
   };
 }
@@ -45,8 +46,6 @@ function createOidcProvider(stack: Stack): iam.CfnOIDCProvider {
 function createSubject(parameters: GitHubParameters): string {
   return Fn.join('', [
     'repo:',
-    parameters.owner.valueAsString,
-    '/',
     parameters.repository.valueAsString,
     ':workflow:',
     parameters.cdkDeployWorkflow.valueAsString,
