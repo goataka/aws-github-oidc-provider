@@ -13,6 +13,7 @@ import { Construct } from 'constructs';
 const GITHUB_OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
+const GITHUB_OIDC_PROVIDER_PATH = `oidc-provider/${GITHUB_OIDC_HOST}`;
 const MAIN_BRANCH = 'main';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
 const CDK_DEPLOY_ROLE_NAME_PREFIX = 'GHACdkDeploy';
@@ -28,14 +29,14 @@ const REPOSITORY_NAME_IN_ROLE_MAX_LENGTH =
   IAM_ROLE_NAME_MAX_LENGTH - CDK_DEPLOY_ROLE_NAME_PREFIX.length - '-'.length;
 const REPOSITORY_PATTERN = `^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,${REPOSITORY_NAME_IN_ROLE_MAX_LENGTH}}$`;
 
-type StackParameters = {
+type RoleStackParameters = {
   repository: CfnParameter;
   cdkDeployWorkflow: CfnParameter;
   githubEnvironment: CfnParameter;
   cdkBootstrapQualifier: CfnParameter;
 };
 
-function createStackParameters(stack: Stack): StackParameters {
+function createRoleStackParameters(stack: Stack): RoleStackParameters {
   return {
     repository: new CfnParameter(stack, 'GitHubRepository', {
       type: 'String',
@@ -82,14 +83,11 @@ function createEnvironmentCondition(
   });
 }
 
-function createOidcProvider(stack: Stack): iam.CfnOIDCProvider {
-  return new iam.CfnOIDCProvider(stack, 'GitHubOidcProvider', {
-    url: GITHUB_OIDC_ISSUER,
-    clientIdList: [GITHUB_OIDC_AUDIENCE],
-  });
+function createOidcProviderArn(): string {
+  return `arn:${Aws.PARTITION}:iam::${Aws.ACCOUNT_ID}:${GITHUB_OIDC_PROVIDER_PATH}`;
 }
 
-function createWorkflowSubject(parameters: StackParameters): string {
+function createWorkflowSubject(parameters: RoleStackParameters): string {
   return Fn.join('', [
     'repo:',
     parameters.repository.valueAsString,
@@ -99,7 +97,7 @@ function createWorkflowSubject(parameters: StackParameters): string {
   ]);
 }
 
-function createEnvironmentSubject(parameters: StackParameters): string {
+function createEnvironmentSubject(parameters: RoleStackParameters): string {
   return Fn.join('', [
     'repo:',
     parameters.repository.valueAsString,
@@ -109,7 +107,7 @@ function createEnvironmentSubject(parameters: StackParameters): string {
 }
 
 function createSubject(
-  parameters: StackParameters,
+  parameters: RoleStackParameters,
   environmentCondition: CfnCondition,
 ): ReturnType<typeof Fn.conditionIf> {
   return Fn.conditionIf(
@@ -119,7 +117,7 @@ function createSubject(
   );
 }
 
-function createCdkDeployRoleName(parameters: StackParameters): string {
+function createCdkDeployRoleName(parameters: RoleStackParameters): string {
   const repositoryName = Fn.select(
     1,
     Fn.split('/', parameters.repository.valueAsString),
@@ -249,8 +247,7 @@ function createCdkBootstrapPolicyDocument(
 
 function createCdkDeployRole(
   stack: Stack,
-  provider: iam.CfnOIDCProvider,
-  parameters: StackParameters,
+  parameters: RoleStackParameters,
   environmentCondition: CfnCondition,
 ): iam.Role {
   const qualifier = parameters.cdkBootstrapQualifier.valueAsString;
@@ -258,7 +255,7 @@ function createCdkDeployRole(
   return new iam.Role(stack, CDK_DEPLOY_ROLE_ID, {
     roleName: createCdkDeployRoleName(parameters),
     assumedBy: new iam.FederatedPrincipal(
-      provider.attrArn,
+      createOidcProviderArn(),
       {
         StringEquals: {
           [`${GITHUB_OIDC_HOST}:aud`]: GITHUB_OIDC_AUDIENCE,
@@ -277,19 +274,32 @@ function createCdkDeployRole(
   });
 }
 
-export class GitHubOidcStack extends Stack {
+export class GitHubOidcProviderStack extends Stack {
   constructor(scope: Construct, constructId: string, stackProps?: StackProps) {
     super(scope, constructId, stackProps);
 
-    const parameters = createStackParameters(this);
+    const provider = new iam.CfnOIDCProvider(this, 'GitHubOidcProvider', {
+      url: GITHUB_OIDC_ISSUER,
+      clientIdList: [GITHUB_OIDC_AUDIENCE],
+    });
+
+    new CfnOutput(this, 'GitHubOidcProviderArn', {
+      value: provider.attrArn,
+    });
+  }
+}
+
+export class GitHubOidcRoleStack extends Stack {
+  constructor(scope: Construct, constructId: string, stackProps?: StackProps) {
+    super(scope, constructId, stackProps);
+
+    const parameters = createRoleStackParameters(this);
     const environmentCondition = createEnvironmentCondition(
       this,
       parameters.githubEnvironment,
     );
-    const provider = createOidcProvider(this);
     const cdkDeployRole = createCdkDeployRole(
       this,
-      provider,
       parameters,
       environmentCondition,
     );

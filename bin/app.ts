@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { App, DefaultStackSynthesizer } from 'aws-cdk-lib';
-import { GitHubOidcStack } from '../lib/oidc-stack';
+import { GitHubOidcProviderStack, GitHubOidcRoleStack } from '../lib/oidc-stack';
 
 const app = new App();
 
-new GitHubOidcStack(app, 'GitHubOidcStack', {
+const stackProps = {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
@@ -12,4 +12,7 @@ new GitHubOidcStack(app, 'GitHubOidcStack', {
   synthesizer: new DefaultStackSynthesizer({
     generateBootstrapVersionRule: false,
   }),
-});
+};
+
+new GitHubOidcProviderStack(app, 'GitHubOidcProviderStack', stackProps);
+new GitHubOidcRoleStack(app, 'GitHubOidcRoleStack', stackProps);

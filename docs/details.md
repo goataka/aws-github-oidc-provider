@@ -42,6 +42,14 @@
 - **リスク：** リポジトリを削除して同名で作り直した場合や、オーナーの名前変更で別のリポジトリが同じ名前を取った場合も、ロールに一致します。
 - **対策：** リポジトリの削除・改名・移管の権限は管理者だけに限定してください。
 
+## OIDCプロバイダーとロールの分割
+
+- **プロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。
+- **分割の理由：** プロバイダーとロールを同じスタックに入れると、2つ目のリポジトリで同じプロバイダーを作成しようとして失敗します。また、プロバイダーのスタックを削除すると、他のリポジトリのロールが使えなくなります。
+- **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRoleStack`に分けています。ロールは、プロバイダーのARNを文字列で参照するため、スタック間の依存はありません。
+- **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
+- **権限：** プロバイダーのスタックには`CAPABILITY_IAM`が必要です。ロールのスタックは、ロール名を指定しているため`CAPABILITY_NAMED_IAM`が必要です。
+
 ## ロールと出力
 
 - **ロール名：** `GHACdkDeploy-リポジトリ名`です。
@@ -77,13 +85,15 @@
 
 ## テンプレートの更新
 
-- **生成元：** `lib/oidc-stack.ts`を`pnpm synth`で合成し、CDKの標準出力をYAMLとして`cloudformation/github-oidc.yml`に保存します。
+- **生成元：** `lib/oidc-stack.ts`を`pnpm synth`で合成し、CDKの標準出力をYAMLとして保存します。
+  - `GitHubOidcProviderStack`：`cloudformation/github-oidc-provider.yml`
+  - `GitHubOidcRoleStack`：`cloudformation/github-oidc-role.yml`
 - **実行タイミング：** pushとpull requestのたびに、型チェックと`pnpm synth`を実行します。
 - **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。`main`への pushでも同じです。
 - **PRの差分：** 生成された更新はPRの差分に含まれます。
-- **Fork：** ForkからのPRは書き込み権限がないためコミットしません。警告を表示するので、`pnpm synth`を実行し、生成された`cloudformation/github-oidc.yml`をコミットしてください。
+- **Fork：** ForkからのPRは書き込み権限がないためコミットしません。警告を表示するので、`pnpm synth`を実行し、生成された`cloudformation/`内のYAMLをコミットしてください。
 
 ## Workflow名の変更
 
-- **パラメーター：** `CdkDeployGitHubWorkflow`で指定します。
-- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、同じ`aws cloudformation deploy`を実行します。
+- **パラメーター：** `CdkDeployGitHubWorkflow`で指定します。ロールのスタックにだけ適用します。
+- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、ロールのスタックで`aws cloudformation deploy`を実行します。

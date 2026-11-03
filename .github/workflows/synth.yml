@@ -39,22 +39,26 @@ jobs:
       - name: Synthesize CloudFormation template
         run: pnpm synth
 
-      - name: Validate synthesized template
+      - name: Validate synthesized templates
         run: |
           jq -e '
             .Resources | type == "object" and
             has("GitHubOidcProvider") and
+            ([to_entries[] | select(.value.Type == "AWS::IAM::OIDCProvider")] | length == 1)
+          ' cdk.out/GitHubOidcProviderStack.template.json >/dev/null
+          jq -e '
+            .Resources | type == "object" and
             ([to_entries[] | select(.value.Type == "AWS::IAM::Role")] | length == 1)
-          ' cdk.out/GitHubOidcStack.template.json >/dev/null
+          ' cdk.out/GitHubOidcRoleStack.template.json >/dev/null
 
       - name: Detect template changes
         id: template
         run: |
-          if [ -z "$(git status --porcelain -- cloudformation/github-oidc.yml)" ]; then
+          if [ -z "$(git status --porcelain -- cloudformation/)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            cat cloudformation/github-oidc.yml
+            cat cloudformation/*.yml
           fi
 
       - name: Commit updated template
@@ -67,7 +71,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- cloudformation/github-oidc.yml
+          git add -- cloudformation/
           git commit -m "Update synthesized CloudFormation template"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "HEAD:refs/heads/${SOURCE_BRANCH}"
@@ -78,4 +82,4 @@ jobs:
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name != github.repository
         run: |
-          echo "::warning::cloudformation/github-oidc.yml is out of date. Run pnpm synth on this branch and commit the result."
+          echo "::warning::cloudformation/*.yml is out of date. Run pnpm synth on this branch and commit the result."

@@ -3,33 +3,51 @@
 ## 概要
 
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
-- **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)を**CloudFormation**で利用します。
+- **テンプレート：** 次の2つを**CloudFormation**で利用します。
+  - [`cloudformation/github-oidc-provider.yml`](cloudformation/github-oidc-provider.yml)：OIDCプロバイダー。アカウントに1回だけデプロイします。
+  - [`cloudformation/github-oidc-role.yml`](cloudformation/github-oidc-role.yml)：ロール。リポジトリごとにデプロイします。
 - **詳細：** 権限や設定の詳細は[詳細ドキュメント](docs/details.md)を参照してください。
 
 ## 利用手順
 
 AWS CloudShellで実行します。Node.js、pnpm、CDKのインストールは不要です。
 
-- **cdk bootstrap：** 対象のAWSアカウントで未実行の前提です。初回は後述のWorkflow手順で実行してください。
-- **リージョン：** 実行環境のリージョン設定に従います。
+### 1. OIDCプロバイダー：アカウントに1回
+
+- **対象：** 同じアカウントで、最初の1回だけ実行します。すでに作成済みなら不要です。
 
 ```sh
 curl --fail --location --silent --show-error \
-  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc.yml \
-  --output github-oidc.yml \
+  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-provider.yml \
+  --output github-oidc-provider.yml \
 && aws cloudformation deploy \
-  --template-file github-oidc.yml \
-  --stack-name github-actions-oidc \
+  --template-file github-oidc-provider.yml \
+  --stack-name github-oidc-provider \
+  --capabilities CAPABILITY_IAM
+```
+
+### 2. ロール：リポジトリごと
+
+```sh
+curl --fail --location --silent --show-error \
+  https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-role.yml \
+  --output github-oidc-role.yml \
+&& aws cloudformation deploy \
+  --template-file github-oidc-role.yml \
+  --stack-name github-oidc-role-REPOSITORY \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
     GitHubRepository=OWNER/REPOSITORY
 ```
 
+- **スタック名：** リポジトリごとに別の名前にします。例：`github-oidc-role-example-repo`
 - **失敗時：** `curl`が失敗すると、`aws cloudformation deploy`は実行されません。
-- **OIDCプロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。同じアカウントで別のリポジトリ用に再度デプロイすると、プロバイダーの作成で失敗します。
+- **実行環境：** リージョンは実行環境の設定に従います。
 
 ## パラメーター
 
+- **対象：** ロールのスタックのパラメーターです。
+- **プロバイダー：** プロバイダーのスタックには、パラメーターはありません。
 - **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。
 - **CdkDeployGitHubWorkflow：** 任意です。既定値は`cdk-deploy`です。`GitHubEnvironment`が空のときに使います。
 - **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけが利用できます。
@@ -99,4 +117,6 @@ jobs:
 ## 注意
 
 - **名前ベースの信頼：** リポジトリを削除して同名で作り直すと、ロールに一致します。リポジトリの削除・改名・移管の権限は管理者に限定してください。
+- **複数のリポジトリ：** リポジトリごとにロールのスタックを作成します。プロバイダーのスタックは再デプロイしません。
+- **削除の順序：** ロールのスタックをすべて削除してから、プロバイダーのスタックを削除してください。
 - **詳細：** 信頼条件、権限の範囲、テンプレートの更新方法は[詳細ドキュメント](docs/details.md)にまとめています。
