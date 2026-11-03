@@ -32,8 +32,8 @@ curl --fail --location --silent --show-error \
 ### 2. ロール：リポジトリごと
 
 ```sh
-export OWNER=octo-org # 変更：GitHubのオーナー名
-export REPOSITORY=example-repo # 変更：リポジトリ名
+export OWNER='octo-org' # 変更：GitHubのオーナー名
+export REPOSITORY='example-repo' # 変更：リポジトリ名
 curl --fail --location --silent --show-error \
   https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-repository.yml \
   --output github-oidc-repository.yml \
