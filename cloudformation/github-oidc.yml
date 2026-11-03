@@ -8,6 +8,12 @@ Parameters:
     Type: String
     Default: cdk-deploy
     Description: "Workflow name allowed to assume the CDK deployment role. Use the name: field, not the file name."
+  CdkBootstrapQualifier:
+    Type: String
+    Default: hnb659fds
+    AllowedPattern: ^[A-Za-z0-9]{1,10}$
+    ConstraintDescription: Must be 1 to 10 letters or numbers.
+    Description: Qualifier used by cdk bootstrap. Must match the --qualifier value used for the target account.
 Resources:
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -53,7 +59,10 @@ Resources:
                       - Ref: AWS::Partition
                       - ":iam::"
                       - Ref: AWS::AccountId
-                      - :role/cdk-hnb659fds-*
+                      - :role/cdk-
+                      - Ref: CdkBootstrapQualifier
+                      - -*
+                Sid: AssumeCdkBootstrapRoles
               - Action: ssm:GetParameter
                 Effect: Allow
                 Resource:
@@ -65,7 +74,137 @@ Resources:
                       - Ref: AWS::Region
                       - ":"
                       - Ref: AWS::AccountId
-                      - :parameter/cdk-bootstrap/hnb659fds/version
+                      - :parameter/cdk-bootstrap/
+                      - Ref: CdkBootstrapQualifier
+                      - /version
+                Sid: ReadCdkBootstrapVersion
+            Version: "2012-10-17"
+          PolicyName: CdkDeployAccess
+        - PolicyDocument:
+            Statement:
+              - Action: cloudformation:ValidateTemplate
+                Effect: Allow
+                Resource: "*"
+                Sid: ValidateCloudFormationTemplate
+              - Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:GetTemplate
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DeleteChangeSet
+                Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - "arn:"
+                      - Ref: AWS::Partition
+                      - ":cloudformation:"
+                      - Ref: AWS::Region
+                      - ":"
+                      - Ref: AWS::AccountId
+                      - :stack/CDKToolkit/*
+                Sid: ManageCdkToolkitStack
+              - Action:
+                  - iam:CreateRole
+                  - iam:GetRole
+                  - iam:UpdateAssumeRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - "arn:"
+                      - Ref: AWS::Partition
+                      - ":iam::"
+                      - Ref: AWS::AccountId
+                      - :role/cdk-
+                      - Ref: CdkBootstrapQualifier
+                      - -*
+                Sid: ManageCdkIamRoles
+              - Action:
+                  - s3:CreateBucket
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:GetBucketPolicy
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketVersioning
+                  - s3:PutBucketVersioning
+                  - s3:GetEncryptionConfiguration
+                  - s3:PutEncryptionConfiguration
+                  - s3:GetBucketPublicAccessBlock
+                  - s3:PutBucketPublicAccessBlock
+                  - s3:GetLifecycleConfiguration
+                  - s3:PutLifecycleConfiguration
+                  - s3:GetBucketTagging
+                  - s3:PutBucketTagging
+                Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - "arn:"
+                      - Ref: AWS::Partition
+                      - :s3:::cdk-
+                      - Ref: CdkBootstrapQualifier
+                      - -assets-
+                      - Ref: AWS::AccountId
+                      - -*
+                Sid: ManageCdkAssetBucket
+              - Action:
+                  - ecr:CreateRepository
+                  - ecr:DescribeRepositories
+                  - ecr:GetRepositoryPolicy
+                  - ecr:SetRepositoryPolicy
+                  - ecr:GetLifecyclePolicy
+                  - ecr:PutLifecyclePolicy
+                  - ecr:PutImageScanningConfiguration
+                  - ecr:PutImageTagMutability
+                  - ecr:ListTagsForResource
+                  - ecr:TagResource
+                Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - "arn:"
+                      - Ref: AWS::Partition
+                      - ":ecr:"
+                      - Ref: AWS::Region
+                      - ":"
+                      - Ref: AWS::AccountId
+                      - :repository/cdk-
+                      - Ref: CdkBootstrapQualifier
+                      - -container-assets-
+                      - Ref: AWS::AccountId
+                      - -*
+                Sid: ManageCdkContainerRepository
+              - Action:
+                  - ssm:GetParameter
+                  - ssm:PutParameter
+                  - ssm:AddTagsToResource
+                Effect: Allow
+                Resource:
+                  Fn::Join:
+                    - ""
+                    - - "arn:"
+                      - Ref: AWS::Partition
+                      - ":ssm:"
+                      - Ref: AWS::Region
+                      - ":"
+                      - Ref: AWS::AccountId
+                      - :parameter/cdk-bootstrap/
+                      - Ref: CdkBootstrapQualifier
+                      - /version
+                Sid: ManageCdkVersionParameter
             Version: "2012-10-17"
           PolicyName: CdkBootstrapAccess
       RoleName:
