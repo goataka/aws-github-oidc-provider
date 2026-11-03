@@ -26,7 +26,7 @@ curl --fail --location --silent --show-error \
 ```
 
 - **失敗時：** `curl`が失敗すると、`aws cloudformation deploy`は実行されません。
-- **注意：** OIDCプロバイダーはアカウントに1つだけ作成できます。別のスタック名で重ねて作成しないでください。
+- **OIDCプロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。同じアカウントで別のリポジトリ用に再度デプロイすると、プロバイダーの作成で失敗します。
 
 ## パラメーター
 
@@ -43,13 +43,58 @@ curl --fail --location --silent --show-error \
 - **Workflow名：** `CdkDeployGitHubWorkflow`には、`.yml`のファイル名ではなくWorkflowの`name`を指定します。
 - **ロール：** 作成されるロールの名前は`GHACdkDeploy-リポジトリ名`です。ARNは、スタックの出力`GHACdkDeployRoleArn`で確認します。
 - **初回のブートストラップ：** 対象アカウントで`cdk bootstrap`が未実行の場合は、ロールを引き受けた後、デプロイの前に次のステップを実行します。実行は初回だけで十分です。
+- **修飾子を変えた場合：** `--qualifier`の値を`CdkBootstrapQualifier`と一致させてください。
+
+### サンプル
+
+`.github/workflows/cdk-deploy.yml`の例です。`123456789012`、`example-repo`、`ap-northeast-1`は環境に合わせて置き換えてください。
 
 ```yaml
-- name: Bootstrap CDK
-  run: pnpm exec cdk bootstrap --qualifier hnb659fds
+name: cdk-deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.13.0
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Assume CDK deploy role
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/GHACdkDeploy-example-repo
+          aws-region: ap-northeast-1
+
+      - name: Bootstrap CDK (first run only)
+        run: pnpm exec cdk bootstrap --qualifier hnb659fds
+
+      - name: Deploy
+        run: pnpm exec cdk deploy --all --require-approval never
 ```
 
-- **修飾子を変えた場合：** `--qualifier`の値を`CdkBootstrapQualifier`と一致させてください。
+- **Workflow名：** この例の`name: cdk-deploy`は、`CdkDeployGitHubWorkflow`の既定値と一致しています。
+- **ロール名：** `role-to-assume`は`GHACdkDeploy-リポジトリ名`です。
 
 ## 注意
 
