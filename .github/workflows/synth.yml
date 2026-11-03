@@ -39,22 +39,22 @@ jobs:
       - name: Synthesize CloudFormation template
         run: pnpm synth
 
-      - name: Validate generated template
+      - name: Validate synthesized template
         run: |
           jq -e '
             .Resources | type == "object" and
             has("GitHubOidcProvider") and
             ([to_entries[] | select(.value.Type == "AWS::IAM::Role")] | length == 1)
-          ' template.json >/dev/null
+          ' cdk.out/GitHubOidcStack.template.json >/dev/null
 
       - name: Detect template changes
         id: template
         run: |
-          if git diff --quiet -- template.json; then
+          if git diff --quiet -- cloudformation/github-oidc.yml; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git diff -- template.json
+            git diff -- cloudformation/github-oidc.yml
           fi
 
       - name: Commit updated template
@@ -68,7 +68,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- template.json
+          git add -- cloudformation/github-oidc.yml
           git commit -m "Update synthesized CloudFormation template"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin "HEAD:refs/heads/${SOURCE_BRANCH}"
@@ -81,4 +81,4 @@ jobs:
             (github.event.pull_request.head.ref || github.ref_name) != github.event.repository.default_branch
           )
         run: |
-          echo "::warning::template.json is out of date. Run pnpm synth on this branch and commit the result."
+          echo "::warning::cloudformation/github-oidc.yml is out of date. Run pnpm synth on this branch and commit the result."

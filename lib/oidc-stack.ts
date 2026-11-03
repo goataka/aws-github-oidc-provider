@@ -13,9 +13,7 @@ const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
 
 type GitHubParameters = {
   owner: CfnParameter;
-  ownerId: CfnParameter;
   repository: CfnParameter;
-  repositoryId: CfnParameter;
   cdkDeployWorkflow: CfnParameter;
 };
 
@@ -25,17 +23,9 @@ function createGitHubParameters(stack: Stack): GitHubParameters {
       type: 'String',
       description: 'GitHub account or organization that owns the repository.',
     }),
-    ownerId: new CfnParameter(stack, 'GitHubOwnerId', {
-      type: 'String',
-      description: 'Immutable numeric GitHub owner ID.',
-    }),
     repository: new CfnParameter(stack, 'GitHubRepository', {
       type: 'String',
       description: 'GitHub repository name.',
-    }),
-    repositoryId: new CfnParameter(stack, 'GitHubRepositoryId', {
-      type: 'String',
-      description: 'Immutable numeric GitHub repository ID.',
     }),
     cdkDeployWorkflow: new CfnParameter(stack, 'GitHubCdkDeployWorkflow', {
       type: 'String',
@@ -56,12 +46,8 @@ function createSubject(parameters: GitHubParameters): string {
   return Fn.join('', [
     'repo:',
     parameters.owner.valueAsString,
-    '@',
-    parameters.ownerId.valueAsString,
     '/',
     parameters.repository.valueAsString,
-    '@',
-    parameters.repositoryId.valueAsString,
     ':workflow:',
     parameters.cdkDeployWorkflow.valueAsString,
     `:ref:refs/heads/${MAIN_BRANCH}`,

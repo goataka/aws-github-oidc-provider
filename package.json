@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@12.16.1",
   "scripts": {
-    "synth": "cdk synth --quiet && cp cdk.out/GitHubOidcStack.template.json template.json",
+    "synth": "cdk synth --quiet && node scripts/write-cloudformation-yaml.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "@types/node": "24.19.2",
     "aws-cdk": "2.1147.0",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
   }
 }
