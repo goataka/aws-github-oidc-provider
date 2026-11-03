@@ -233,13 +233,13 @@ Resources:
                     - /
                     - Ref: GitHubRepository
     Metadata:
-      aws:cdk:path: GitHubOidcRoleStack/GitHubCdkDeployRole/Resource
+      aws:cdk:path: GitHubOidcRepositoryStack/GitHubCdkDeployRole/Resource
   CDKMetadata:
     Type: AWS::CDK::Metadata
     Properties:
       Analytics: v2:deflate64:H4sIAAAAAAAA/yWJQQ6CMBAA38K9XbFEfQAP0OADzELXZIFuTbuVA+HvpvE0MxkH7naBtsEt28kvduUR9qfitJj+LQ9MGEgp1eijeFaOYnDLL8YA+xBXqqvyqHIv+il6GImeYM6nr7vCuYO2mTOzTUWUA8Hw5w/sWR0lfAAAAA==
     Metadata:
-      aws:cdk:path: GitHubOidcRoleStack/CDKMetadata/Default
+      aws:cdk:path: GitHubOidcRepositoryStack/CDKMetadata/Default
 Outputs:
   GHACdkDeployRoleArn:
     Value:
