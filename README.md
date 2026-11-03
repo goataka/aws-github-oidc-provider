@@ -68,7 +68,7 @@ curl --fail --location --silent --show-error \
 ### サンプル
 
 - **ファイル：** [`examples/cdk-deploy.yml`](examples/cdk-deploy.yml)を、利用するリポジトリの`.github/workflows/`に配置します。
-- **置き換え：** `123456789012`、`example-repo`、`ap-northeast-1`は環境に合わせて置き換えてください。
+- **置き換え：** ワークフローの`env`にある`AWS_ACCOUNT_ID`、`REPOSITORY_NAME`、`AWS_REGION`、`CDK_BOOTSTRAP_QUALIFIER`を環境に合わせて変更してください。
 
 ## 注意
 
