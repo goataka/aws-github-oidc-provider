@@ -13,7 +13,7 @@
 
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
 - **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
-- **ロール：** `GitHubActionsCdkDeploy`
+- **ロール：** `GitHubActionsCdkDeployRole`
   - **権限：** AWS管理ポリシー`AdministratorAccess`
 - **制限：** ロールは指定したリポジトリ、Workflow、`main`ブランチに限定されます。
 - **既定のWorkflow：** `cdk-deploy`
