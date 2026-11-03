@@ -47,7 +47,6 @@ Resources:
             - - "arn:"
               - Ref: AWS::Partition
               - :iam::aws:policy/AdministratorAccess
-      RoleName: GitHubActionsCdkDeployRole
     Metadata:
       aws:cdk:path: GitHubOidcStack/GitHubCdkDeployRole/Resource
   CDKMetadata:
