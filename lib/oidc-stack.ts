@@ -45,7 +45,7 @@ function createStackParameters(stack: Stack): StackParameters {
       description:
         'GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.',
     }),
-    cdkDeployWorkflow: new CfnParameter(stack, 'GitHubCdkDeployWorkflow', {
+    cdkDeployWorkflow: new CfnParameter(stack, 'CdkDeployGitHubWorkflow', {
       type: 'String',
       default: CDK_DEPLOY_WORKFLOW_DEFAULT,
       description:

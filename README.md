@@ -1,71 +1,17 @@
 # AWS GitHub OIDC プロバイダー
 
-## 目次
-
-- [概要](#概要)
-- [GitHub OIDCの設定](#github-oidcの設定)
-- [AWS CloudShellからのセットアップ](#aws-cloudshellからのセットアップ)
-- [パラメーター](#パラメーター)
-- [テンプレートの更新](#テンプレートの更新)
-- [Workflow名の変更](#workflow名の変更)
-
 ## 概要
 
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
-- **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
-- **ロール名：** `GHACdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、51文字以内です。
-- **ARN：** スタックの出力`GHACdkDeployRoleArn`で確認します。
-- **権限の構成：** 次の2つのインラインポリシーに分けています。
-  - **`CdkDeployAccess`：** `cdk deploy`に必要な権限です。
-  - **`CdkBootstrapAccess`：** `cdk bootstrap`に必要な権限です。
-- **修飾子：** `CdkBootstrapQualifier`で指定します。既定値は`hnb659fds`です。
-- **制限：** ロールは指定したリポジトリに限定されます。
-  - **Environment未指定：** Workflowと`main`ブランチに限定されます。
-  - **Environment指定：** 指定したEnvironmentを使うジョブだけに限定されます。
-- **既定のWorkflow：** `cdk-deploy`
+- **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)を**CloudFormation**で利用します。
+- **詳細：** 権限や設定の詳細は[詳細ドキュメント](docs/details.md)を参照してください。
 
-## GitHub OIDCの設定
+## 利用手順
 
-- **参照：** [GitHub OIDC](https://docs.github.com/en/actions/concepts/security/openid-connect)
-- **クレーム：** Workflow単位に制限するには、OIDC subjectに`repo`、`workflow`、`ref`を含めます。
-- **設定例：**
+AWS CloudShellで実行します。Node.js、pnpm、CDKのインストールは不要です。
 
-```json
-{
-  "include_claim_keys": ["repo", "workflow", "ref"]
-}
-```
-
-- **subjectの形式・Environment未指定：**
-
-```text
-repo:OWNER/REPOSITORY:workflow:WORKFLOW_NAME:ref:refs/heads/main
-```
-
-- **subjectの形式・Environment指定：**
-
-```text
-repo:OWNER/REPOSITORY:environment:ENVIRONMENT_NAME
-```
-
-- **リポジトリ：** `GitHubRepository`に`OWNER/REPOSITORY`形式で指定します。
-- **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。
-- **権限設定：** Workflowには`permissions: id-token: write`を設定します。
-- **immutable subject：** **無効**のままにしてください。有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
-- **Environmentの注意：** Environment指定時のsubjectには`ref`が含まれません。対象のEnvironmentの**Deployment branches**で`main`だけを許可してください。
-- **Environmentの確認：** 実際のsubjectは、設定後にテスト用のWorkflowで確認してください。
-
-### 名前ベースの注意
-
-- **リスク：** IDを使わないため、リポジトリを削除して同名で作り直した場合や、オーナーの名前を変更して別のリポジトリが同じ名前を取った場合も、ロールに一致します。
-- **対策：** リポジトリの削除・改名・移管の権限を管理者だけに限定してください。
-
-## AWS CloudShellからのセットアップ
-
-- **実行環境：** 対象のAWSアカウントとリージョンでCloudShellを開きます。
-- **認証情報：** CloudShellの認証情報とAWS CLIを利用します。
-- **不要な作業：** Node.js、pnpm、CDKのインストールは不要です。
-- **リージョン：** `aws cloudformation deploy`は実行環境のリージョン設定に従います。
+- **前提：** 対象のAWSアカウントで`cdk bootstrap`を実行済みであること。
+- **リージョン：** 実行環境のリージョン設定に従います。
 
 ```sh
 curl --fail --location --silent --show-error \
@@ -79,54 +25,25 @@ curl --fail --location --silent --show-error \
     GitHubRepository=OWNER/REPOSITORY
 ```
 
-- **失敗時：** `curl`が失敗すると、`&&`により`aws cloudformation deploy`は実行されません。
-- **パラメーター：** `OWNER/REPOSITORY`を環境に合わせて置き換えます。
-- **対象の変更：** 別のリポジトリを許可する場合は、パラメーターを変更して同じスタックを更新します。
-- **注意：** OIDCプロバイダーはアカウントに1つだけ作成できるため、同じテンプレートを別のスタック名で重ねて作成しないでください。
-
-## テンプレートの更新
-
-- **生成元：** `lib/oidc-stack.ts`を`pnpm synth`で合成し、CDKの標準出力をYAMLとして`cloudformation/github-oidc.yml`に保存します。
-- **合成：** pushとpull requestのたびに、GitHub Actionsが型チェックと`pnpm synth`を実行します。
-- **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。
-- **PRの差分：** 生成された更新はPRの差分に含まれます。
-- **artifact：** 合成結果はartifactとして保存しません。
-- **既定ブランチ：** `main`へのpushではコミットしません。
-- **Fork：** ForkからのPRは書き込み権限がないためコミットしません。警告を表示するので、`pnpm synth`を実行し、生成された`cloudformation/github-oidc.yml`をコミットしてください。
+- **失敗時：** `curl`が失敗すると、`aws cloudformation deploy`は実行されません。
+- **注意：** OIDCプロバイダーはアカウントに1つだけ作成できます。別のスタック名で重ねて作成しないでください。
 
 ## パラメーター
 
-- **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。例：`octo-org/example-repo`
-- **リポジトリ名の上限：** `REPOSITORY`部分は51文字以内です。ロール名に含めるためです。
-- **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけがロールを引き受けられます。空の場合は`GitHubCdkDeployWorkflow`と`main`ブランチの条件を使います。
-- **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。`GitHubEnvironment`が空のときだけ使います。Workflowの`name`を指定します。
-- **CdkBootstrapQualifier：** 任意です。既定値は`hnb659fds`です。1から10文字の英数字で指定し、対象アカウントの`cdk bootstrap --qualifier`と一致させます。
+- **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。
+- **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけが利用できます。
+- **CdkDeployGitHubWorkflow：** 任意です。既定値は`cdk-deploy`です。`GitHubEnvironment`が空のときに使います。
+- **CdkBootstrapQualifier：** 任意です。既定値は`hnb659fds`です。対象アカウントの`cdk bootstrap --qualifier`と一致させます。
 
-## 権限の範囲
+変更する場合は、`--parameter-overrides`に`名前=値`を追加して、同じ`aws cloudformation deploy`を実行します。
 
-### CdkDeployAccess
+## GitHub Actions側の設定
 
-- **目的：** `cdk deploy`でブートストラップのロールを使うための権限です。
-- **sts:AssumeRole：** アカウント内の`cdk-修飾子-*`ロールだけを引き受けます。
-- **ssm:GetParameter：** `/cdk-bootstrap/修飾子/version`だけを読みます。
+- **権限：** Workflowに`permissions: id-token: write`を設定します。
+- **Workflow名：** `CdkDeployGitHubWorkflow`には、`.yml`のファイル名ではなくWorkflowの`name`を指定します。
+- **ロール：** 作成されるロールの名前は`GHACdkDeploy-リポジトリ名`です。ARNは、スタックの出力`GHACdkDeployRoleArn`で確認します。
 
-### CdkBootstrapAccess
+## 注意
 
-- **目的：** `cdk bootstrap`で、ブートストラップ用のリソースを作成・更新するための権限です。
-- **ValidateCloudFormationTemplate：** テンプレートの検証です。対象は`*`です。
-- **ManageCdkToolkitStack：** `CDKToolkit`スタックの作成・更新です。
-- **ManageCdkIamRoles：** `cdk-修飾子-*`ロールの作成・更新です。
-- **ManageCdkAssetBucket：** `cdk-修飾子-assets-アカウントID-*`バケットの作成・設定です。
-- **ManageCdkContainerRepository：** `cdk-修飾子-container-assets-アカウントID-*`リポジトリの作成・設定です。
-- **ManageCdkVersionParameter：** `/cdk-bootstrap/修飾子/version`の作成・更新です。
-
-### 注意
-
-- **対象の範囲：** `CDKToolkit`という既定のスタック名と、既定の資産用の名前だけを対象にしています。`--toolkit-stack-name`などを変えた場合は、権限の対象も変える必要があります。
-- **検証：** 権限の一覧は、CDKのブートストラップで作られるリソースから導いています。実際の`cdk bootstrap`で不足が出た場合は、この一覧を追加してください。
-- **強い権限になる点：** `cdk deploy`で引き受けるブートストラップのデプロイロールは、CDKの既定では広い権限を持つ実行ロールを使います。そのため、`sts:AssumeRole`の範囲でも実質的に強い権限になります。
-
-## Workflow名の変更
-
-- **パラメーター：** `GitHubCdkDeployWorkflow`で指定します。
-- **手順：** `--parameter-overrides`に`GitHubCdkDeployWorkflow=WORKFLOW名`を追加し、同じ`aws cloudformation deploy`を実行します。
+- **名前ベースの信頼：** リポジトリを削除して同名で作り直すと、ロールに一致します。リポジトリの削除・改名・移管の権限は管理者に限定してください。
+- **詳細：** 信頼条件、権限の範囲、テンプレートの更新方法は[詳細ドキュメント](docs/details.md)にまとめています。
