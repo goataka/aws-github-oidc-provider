@@ -4,7 +4,7 @@ Parameters:
     AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,51}$
     ConstraintDescription: Must be OWNER/REPOSITORY using letters, numbers, hyphens, underscores, and periods.
     Description: GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.
-  GitHubCdkDeployWorkflow:
+  CdkDeployGitHubWorkflow:
     Type: String
     Default: cdk-deploy
     Description: "Workflow name allowed to assume the CDK deployment role when GitHubEnvironment is empty. Use the name: field, not the file name."
@@ -58,7 +58,7 @@ Resources:
                         - - "repo:"
                           - Ref: GitHubRepository
                           - ":workflow:"
-                          - Ref: GitHubCdkDeployWorkflow
+                          - Ref: CdkDeployGitHubWorkflow
                           - :ref:refs/heads/main
             Effect: Allow
             Principal:
