@@ -72,7 +72,7 @@ aws cloudformation deploy \
 
 ## テンプレートの更新
 
-- **生成元：** `lib/oidc-stack.ts`をCDKで合成し、`cloudformation/github-oidc.yml`に変換します。
+- **生成元：** `lib/oidc-stack.ts`を`pnpm synth`で合成し、CDKの標準出力をYAMLとして`cloudformation/github-oidc.yml`に保存します。
 - **合成：** pushとpull requestのたびに、GitHub Actionsが型チェックと`pnpm synth`を実行します。
 - **コミット：** 差分がある場合、同一リポジトリのブランチにコミットします。
 - **PRの差分：** 生成された更新はPRの差分に含まれます。
