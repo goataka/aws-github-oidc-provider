@@ -32,8 +32,8 @@ curl --fail --location --silent --show-error \
 ### 2. ロール：リポジトリごと
 
 ```sh
-OWNER=octo-org
-REPOSITORY=example-repo
+export OWNER=octo-org
+export REPOSITORY=example-repo
 curl --fail --location --silent --show-error \
   https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-repository.yml \
   --output github-oidc-repository.yml \
