@@ -9,7 +9,11 @@ const MAIN_BRANCH = 'main';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
 const CDK_DEPLOY_POLICY = 'AdministratorAccess';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
-const REPOSITORY_PATTERN = '^[A-Za-z0-9-]+/[A-Za-z0-9_.-]+$';
+const CDK_DEPLOY_ROLE_NAME_PREFIX = 'GitHubActionsCdkDeploy';
+const IAM_ROLE_NAME_MAX_LENGTH = 64;
+const REPOSITORY_NAME_IN_ROLE_MAX_LENGTH =
+  IAM_ROLE_NAME_MAX_LENGTH - CDK_DEPLOY_ROLE_NAME_PREFIX.length - '-'.length;
+const REPOSITORY_PATTERN = `^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,${REPOSITORY_NAME_IN_ROLE_MAX_LENGTH}}$`;
 
 type GitHubParameters = {
   repository: CfnParameter;
@@ -52,12 +56,22 @@ function createSubject(parameters: GitHubParameters): string {
   ]);
 }
 
+function createCdkDeployRoleName(parameters: GitHubParameters): string {
+  const repositoryName = Fn.select(
+    1,
+    Fn.split('/', parameters.repository.valueAsString),
+  );
+
+  return Fn.join('-', [CDK_DEPLOY_ROLE_NAME_PREFIX, repositoryName]);
+}
+
 function createCdkDeployRole(
   stack: Stack,
   provider: iam.CfnOIDCProvider,
   parameters: GitHubParameters,
 ): iam.Role {
   return new iam.Role(stack, CDK_DEPLOY_ROLE_ID, {
+    roleName: createCdkDeployRoleName(parameters),
     assumedBy: new iam.FederatedPrincipal(
       provider.attrArn,
       {

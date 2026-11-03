@@ -13,7 +13,8 @@
 
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
 - **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
-- **ロール：** CloudFormationが名前を自動で付けます。ARNはスタックの出力`GitHubCdkDeployRoleArn`で確認します。
+- **ロール名：** `GitHubActionsCdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、41文字以内です。
+- **ARN：** スタックの出力`GitHubCdkDeployRoleArn`で確認します。
   - **権限：** AWS管理ポリシー`AdministratorAccess`
 - **制限：** ロールは指定したリポジトリ、Workflow、`main`ブランチに限定されます。
 - **既定のWorkflow：** `cdk-deploy`
@@ -61,7 +62,7 @@ curl --fail --location --silent --show-error \
 aws cloudformation deploy \
   --template-file github-oidc.yml \
   --stack-name github-actions-oidc \
-  --capabilities CAPABILITY_IAM \
+  --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
     GitHubRepository=OWNER/REPOSITORY
 ```
@@ -83,6 +84,7 @@ aws cloudformation deploy \
 ## パラメーター
 
 - **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。例：`octo-org/example-repo`
+- **リポジトリ名の上限：** `REPOSITORY`部分は41文字以内です。ロール名に含めるためです。
 - **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。Workflowの`name`を指定します。
 
 ## Workflow名の変更
