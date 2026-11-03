@@ -1,0 +1,22 @@
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      ClientIdList:
+        - sts.amazonaws.com
+      Url: https://token.actions.githubusercontent.com
+    Metadata:
+      aws:cdk:path: GitHubOidcProviderStack/GitHubOidcProvider
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/zPSMzI31TNQTCwv1k1OydbNyUzSqw4uSUzO1kksL47PTMzVc07L8/d0cQ4oyi/LTEkt0gHxS0sKSktqdfLyU1L1sor1y4zM9AyN9QwUs4ozM3WLSvNKMnNT9YIgNAAZ8m9hYwAAAA==
+    Metadata:
+      aws:cdk:path: GitHubOidcProviderStack/CDKMetadata/Default
+Outputs:
+  GitHubOidcProviderArn:
+    Value:
+      Fn::GetAtt:
+        - GitHubOidcProvider
+        - Arn
+
