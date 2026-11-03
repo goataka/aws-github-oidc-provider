@@ -15,7 +15,9 @@
 - **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
 - **ロール名：** `GitHubActionsCdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、41文字以内です。
 - **ARN：** スタックの出力`GitHubCdkDeployRoleArn`で確認します。
-  - **権限：** AWS管理ポリシー`AdministratorAccess`
+  - **権限：** CDKのブートストラップロールを引き受ける`sts:AssumeRole`と、ブートストラップのバージョンを読む`ssm:GetParameter`だけです。
+  - **対象：** アカウント内の`cdk-hnb659fds-*`ロールと`/cdk-bootstrap/hnb659fds/version`パラメーターに限定します。
+  - **前提：** 対象アカウントで`cdk bootstrap`を実行済みであることが必要です。`cdk bootstrap`の既定の修飾子`hnb659fds`を使います。
 - **制限：** ロールは指定したリポジトリ、Workflow、`main`ブランチに限定されます。
 - **既定のWorkflow：** `cdk-deploy`
 

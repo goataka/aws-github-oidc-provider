@@ -1,4 +1,11 @@
-import { CfnOutput, CfnParameter, Fn, Stack, StackProps } from 'aws-cdk-lib';
+import {
+  Aws,
+  CfnOutput,
+  CfnParameter,
+  Fn,
+  Stack,
+  StackProps,
+} from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
@@ -7,8 +14,11 @@ const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
 const MAIN_BRANCH = 'main';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
-const CDK_DEPLOY_POLICY = 'AdministratorAccess';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
+const CDK_DEPLOY_POLICY_NAME = 'CdkBootstrapAccess';
+const CDK_BOOTSTRAP_QUALIFIER = 'hnb659fds';
+const CDK_BOOTSTRAP_ROLE_ARN_PATTERN = `arn:${Aws.PARTITION}:iam::${Aws.ACCOUNT_ID}:role/cdk-${CDK_BOOTSTRAP_QUALIFIER}-*`;
+const CDK_BOOTSTRAP_VERSION_PARAMETER_ARN = `arn:${Aws.PARTITION}:ssm:${Aws.REGION}:${Aws.ACCOUNT_ID}:parameter/cdk-bootstrap/${CDK_BOOTSTRAP_QUALIFIER}/version`;
 const CDK_DEPLOY_ROLE_NAME_PREFIX = 'GitHubActionsCdkDeploy';
 const IAM_ROLE_NAME_MAX_LENGTH = 64;
 const REPOSITORY_NAME_IN_ROLE_MAX_LENGTH =
@@ -65,6 +75,21 @@ function createCdkDeployRoleName(parameters: GitHubParameters): string {
   return Fn.join('-', [CDK_DEPLOY_ROLE_NAME_PREFIX, repositoryName]);
 }
 
+function createCdkDeployPolicyDocument(): iam.PolicyDocument {
+  return new iam.PolicyDocument({
+    statements: [
+      new iam.PolicyStatement({
+        actions: ['sts:AssumeRole'],
+        resources: [CDK_BOOTSTRAP_ROLE_ARN_PATTERN],
+      }),
+      new iam.PolicyStatement({
+        actions: ['ssm:GetParameter'],
+        resources: [CDK_BOOTSTRAP_VERSION_PARAMETER_ARN],
+      }),
+    ],
+  });
+}
+
 function createCdkDeployRole(
   stack: Stack,
   provider: iam.CfnOIDCProvider,
@@ -82,9 +107,9 @@ function createCdkDeployRole(
       },
       'sts:AssumeRoleWithWebIdentity',
     ),
-    managedPolicies: [
-      iam.ManagedPolicy.fromAwsManagedPolicyName(CDK_DEPLOY_POLICY),
-    ],
+    inlinePolicies: {
+      [CDK_DEPLOY_POLICY_NAME]: createCdkDeployPolicyDocument(),
+    },
   });
 }
 
