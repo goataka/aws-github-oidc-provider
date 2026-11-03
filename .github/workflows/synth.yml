@@ -50,11 +50,11 @@ jobs:
       - name: Detect template changes
         id: template
         run: |
-          if git diff --quiet -- cloudformation/github-oidc.yml; then
+          if [ -z "$(git status --porcelain -- cloudformation/github-oidc.yml)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git diff -- cloudformation/github-oidc.yml
+            cat cloudformation/github-oidc.yml
           fi
 
       - name: Commit updated template
