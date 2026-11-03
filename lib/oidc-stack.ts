@@ -1,5 +1,6 @@
 import {
   Aws,
+  CfnCondition,
   CfnOutput,
   CfnParameter,
   Fn,
@@ -14,13 +15,14 @@ const GITHUB_OIDC_HOST = 'token.actions.githubusercontent.com';
 const GITHUB_OIDC_AUDIENCE = 'sts.amazonaws.com';
 const MAIN_BRANCH = 'main';
 const CDK_DEPLOY_ROLE_ID = 'GitHubCdkDeployRole';
-const CDK_DEPLOY_ROLE_NAME_PREFIX = 'GitHubActionsCdkDeploy';
+const CDK_DEPLOY_ROLE_NAME_PREFIX = 'GHACdkDeploy';
 const CDK_DEPLOY_WORKFLOW_DEFAULT = 'cdk-deploy';
 const CDK_DEPLOY_POLICY_NAME = 'CdkDeployAccess';
 const CDK_BOOTSTRAP_POLICY_NAME = 'CdkBootstrapAccess';
 const CDK_BOOTSTRAP_QUALIFIER_DEFAULT = 'hnb659fds';
 const CDK_BOOTSTRAP_QUALIFIER_PATTERN = '^[A-Za-z0-9]{1,10}$';
 const CDK_TOOLKIT_STACK_NAME = 'CDKToolkit';
+const GITHUB_ENVIRONMENT_PATTERN = '^[A-Za-z0-9._-]*$';
 const IAM_ROLE_NAME_MAX_LENGTH = 64;
 const REPOSITORY_NAME_IN_ROLE_MAX_LENGTH =
   IAM_ROLE_NAME_MAX_LENGTH - CDK_DEPLOY_ROLE_NAME_PREFIX.length - '-'.length;
@@ -29,6 +31,7 @@ const REPOSITORY_PATTERN = `^[A-Za-z0-9-]+/[A-Za-z0-9_.-]{1,${REPOSITORY_NAME_IN
 type StackParameters = {
   repository: CfnParameter;
   cdkDeployWorkflow: CfnParameter;
+  githubEnvironment: CfnParameter;
   cdkBootstrapQualifier: CfnParameter;
 };
 
@@ -46,7 +49,16 @@ function createStackParameters(stack: Stack): StackParameters {
       type: 'String',
       default: CDK_DEPLOY_WORKFLOW_DEFAULT,
       description:
-        'Workflow name allowed to assume the CDK deployment role. Use the name: field, not the file name.',
+        'Workflow name allowed to assume the CDK deployment role when GitHubEnvironment is empty. Use the name: field, not the file name.',
+    }),
+    githubEnvironment: new CfnParameter(stack, 'GitHubEnvironment', {
+      type: 'String',
+      default: '',
+      allowedPattern: GITHUB_ENVIRONMENT_PATTERN,
+      constraintDescription:
+        'Use letters, numbers, hyphens, underscores, and periods, or leave empty.',
+      description:
+        'GitHub Environment name. When set, only jobs using this environment can assume the role. When empty, the workflow and main branch are used instead.',
     }),
     cdkBootstrapQualifier: new CfnParameter(stack, 'CdkBootstrapQualifier', {
       type: 'String',
@@ -59,6 +71,17 @@ function createStackParameters(stack: Stack): StackParameters {
   };
 }
 
+function createEnvironmentCondition(
+  stack: Stack,
+  githubEnvironment: CfnParameter,
+): CfnCondition {
+  return new CfnCondition(stack, 'HasGitHubEnvironment', {
+    expression: Fn.conditionNot(
+      Fn.conditionEquals(githubEnvironment.valueAsString, ''),
+    ),
+  });
+}
+
 function createOidcProvider(stack: Stack): iam.CfnOIDCProvider {
   return new iam.CfnOIDCProvider(stack, 'GitHubOidcProvider', {
     url: GITHUB_OIDC_ISSUER,
@@ -66,7 +89,7 @@ function createOidcProvider(stack: Stack): iam.CfnOIDCProvider {
   });
 }
 
-function createSubject(parameters: StackParameters): string {
+function createWorkflowSubject(parameters: StackParameters): string {
   return Fn.join('', [
     'repo:',
     parameters.repository.valueAsString,
@@ -74,6 +97,26 @@ function createSubject(parameters: StackParameters): string {
     parameters.cdkDeployWorkflow.valueAsString,
     `:ref:refs/heads/${MAIN_BRANCH}`,
   ]);
+}
+
+function createEnvironmentSubject(parameters: StackParameters): string {
+  return Fn.join('', [
+    'repo:',
+    parameters.repository.valueAsString,
+    ':environment:',
+    parameters.githubEnvironment.valueAsString,
+  ]);
+}
+
+function createSubject(
+  parameters: StackParameters,
+  environmentCondition: CfnCondition,
+): ReturnType<typeof Fn.conditionIf> {
+  return Fn.conditionIf(
+    environmentCondition.logicalId,
+    createEnvironmentSubject(parameters),
+    createWorkflowSubject(parameters),
+  );
 }
 
 function createCdkDeployRoleName(parameters: StackParameters): string {
@@ -195,11 +238,7 @@ function createCdkBootstrapPolicyDocument(
       }),
       new iam.PolicyStatement({
         sid: 'ManageCdkVersionParameter',
-        actions: [
-          'ssm:GetParameter',
-          'ssm:PutParameter',
-          'ssm:AddTagsToResource',
-        ],
+        actions: ['ssm:GetParameter', 'ssm:PutParameter', 'ssm:AddTagsToResource'],
         resources: [
           `arn:${Aws.PARTITION}:ssm:${Aws.REGION}:${Aws.ACCOUNT_ID}:parameter/cdk-bootstrap/${qualifier}/version`,
         ],
@@ -212,6 +251,7 @@ function createCdkDeployRole(
   stack: Stack,
   provider: iam.CfnOIDCProvider,
   parameters: StackParameters,
+  environmentCondition: CfnCondition,
 ): iam.Role {
   const qualifier = parameters.cdkBootstrapQualifier.valueAsString;
 
@@ -222,7 +262,10 @@ function createCdkDeployRole(
       {
         StringEquals: {
           [`${GITHUB_OIDC_HOST}:aud`]: GITHUB_OIDC_AUDIENCE,
-          [`${GITHUB_OIDC_HOST}:sub`]: createSubject(parameters),
+          [`${GITHUB_OIDC_HOST}:sub`]: createSubject(
+            parameters,
+            environmentCondition,
+          ),
         },
       },
       'sts:AssumeRoleWithWebIdentity',
@@ -239,10 +282,19 @@ export class GitHubOidcStack extends Stack {
     super(scope, constructId, stackProps);
 
     const parameters = createStackParameters(this);
+    const environmentCondition = createEnvironmentCondition(
+      this,
+      parameters.githubEnvironment,
+    );
     const provider = createOidcProvider(this);
-    const cdkDeployRole = createCdkDeployRole(this, provider, parameters);
+    const cdkDeployRole = createCdkDeployRole(
+      this,
+      provider,
+      parameters,
+      environmentCondition,
+    );
 
-    new CfnOutput(this, 'GitHubCdkDeployRoleArn', {
+    new CfnOutput(this, 'GHACdkDeployRoleArn', {
       value: cdkDeployRole.roleArn,
     });
   }

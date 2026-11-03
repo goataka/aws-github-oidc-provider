@@ -13,13 +13,15 @@
 
 - **目的：** GitHub ActionsからAWSへOIDCで接続するためのプロバイダーとIAMロールを作成します。
 - **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
-- **ロール名：** `GitHubActionsCdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、41文字以内です。
-- **ARN：** スタックの出力`GitHubCdkDeployRoleArn`で確認します。
+- **ロール名：** `GHACdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、51文字以内です。
+- **ARN：** スタックの出力`GHACdkDeployRoleArn`で確認します。
 - **権限の構成：** 次の2つのインラインポリシーに分けています。
   - **`CdkDeployAccess`：** `cdk deploy`に必要な権限です。
   - **`CdkBootstrapAccess`：** `cdk bootstrap`に必要な権限です。
 - **修飾子：** `CdkBootstrapQualifier`で指定します。既定値は`hnb659fds`です。
-- **制限：** ロールは指定したリポジトリ、Workflow、`main`ブランチに限定されます。
+- **制限：** ロールは指定したリポジトリに限定されます。
+  - **Environment未指定：** Workflowと`main`ブランチに限定されます。
+  - **Environment指定：** 指定したEnvironmentを使うジョブだけに限定されます。
 - **既定のWorkflow：** `cdk-deploy`
 
 ## GitHub OIDCの設定
@@ -34,17 +36,24 @@
 }
 ```
 
-- **subjectの形式：**
+- **subjectの形式・Environment未指定：**
 
 ```text
 repo:OWNER/REPOSITORY:workflow:WORKFLOW_NAME:ref:refs/heads/main
+```
+
+- **subjectの形式・Environment指定：**
+
+```text
+repo:OWNER/REPOSITORY:environment:ENVIRONMENT_NAME
 ```
 
 - **リポジトリ：** `GitHubRepository`に`OWNER/REPOSITORY`形式で指定します。
 - **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。
 - **権限設定：** Workflowには`permissions: id-token: write`を設定します。
 - **immutable subject：** **無効**のままにしてください。有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
-- **制限事項：** GitHub Environmentを使うとsubject形式が変わるため、この設定では利用できません。
+- **Environmentの注意：** Environment指定時のsubjectには`ref`が含まれません。対象のEnvironmentの**Deployment branches**で`main`だけを許可してください。
+- **Environmentの確認：** 実際のsubjectは、設定後にテスト用のWorkflowで確認してください。
 
 ### 名前ベースの注意
 
@@ -61,8 +70,8 @@ repo:OWNER/REPOSITORY:workflow:WORKFLOW_NAME:ref:refs/heads/main
 ```sh
 curl --fail --location --silent --show-error \
   https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc.yml \
-  --output github-oidc.yml
-aws cloudformation deploy \
+  --output github-oidc.yml \
+&& aws cloudformation deploy \
   --template-file github-oidc.yml \
   --stack-name github-actions-oidc \
   --capabilities CAPABILITY_NAMED_IAM \
@@ -70,6 +79,7 @@ aws cloudformation deploy \
     GitHubRepository=OWNER/REPOSITORY
 ```
 
+- **失敗時：** `curl`が失敗すると、`&&`により`aws cloudformation deploy`は実行されません。
 - **パラメーター：** `OWNER/REPOSITORY`を環境に合わせて置き換えます。
 - **対象の変更：** 別のリポジトリを許可する場合は、パラメーターを変更して同じスタックを更新します。
 - **注意：** OIDCプロバイダーはアカウントに1つだけ作成できるため、同じテンプレートを別のスタック名で重ねて作成しないでください。
@@ -87,8 +97,9 @@ aws cloudformation deploy \
 ## パラメーター
 
 - **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。例：`octo-org/example-repo`
-- **リポジトリ名の上限：** `REPOSITORY`部分は41文字以内です。ロール名に含めるためです。
-- **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。Workflowの`name`を指定します。
+- **リポジトリ名の上限：** `REPOSITORY`部分は51文字以内です。ロール名に含めるためです。
+- **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけがロールを引き受けられます。空の場合は`GitHubCdkDeployWorkflow`と`main`ブランチの条件を使います。
+- **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。`GitHubEnvironment`が空のときだけ使います。Workflowの`name`を指定します。
 - **CdkBootstrapQualifier：** 任意です。既定値は`hnb659fds`です。1から10文字の英数字で指定し、対象アカウントの`cdk bootstrap --qualifier`と一致させます。
 
 ## 権限の範囲
