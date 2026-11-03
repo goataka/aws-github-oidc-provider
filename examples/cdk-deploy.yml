@@ -9,10 +9,10 @@ permissions:
   id-token: write
 
 env:
-  AWS_ACCOUNT_ID: "123456789012"
-  AWS_REGION: ap-northeast-1
-  REPOSITORY_NAME: example-repo
-  CDK_BOOTSTRAP_QUALIFIER: hnb659fds
+  AWS_ACCOUNT_ID: "123456789012" # 変更：AWS アカウントID
+  AWS_REGION: ap-northeast-1 # 変更：デプロイ先のリージョン
+  REPOSITORY_NAME: example-repo # 変更：リポジトリ名（ロール名に使用）
+  CDK_BOOTSTRAP_QUALIFIER: hnb659fds # 変更：cdk bootstrap の修飾子
 
 jobs:
   deploy:
