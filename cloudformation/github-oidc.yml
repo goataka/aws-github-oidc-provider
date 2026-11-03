@@ -1,14 +1,13 @@
 Parameters:
-  GitHubOwner:
-    Type: String
-    Description: GitHub account or organization that owns the repository.
   GitHubRepository:
     Type: String
-    Description: GitHub repository name.
+    AllowedPattern: ^[A-Za-z0-9-]+/[A-Za-z0-9_.-]+$
+    ConstraintDescription: Must be OWNER/REPOSITORY using letters, numbers, hyphens, underscores, and periods.
+    Description: GitHub repository in OWNER/REPOSITORY format, for example octo-org/example-repo.
   GitHubCdkDeployWorkflow:
     Type: String
     Default: cdk-deploy
-    Description: Workflow allowed to assume the CDK deployment role.
+    Description: "Workflow name allowed to assume the CDK deployment role. Use the name: field, not the file name."
 Resources:
   GitHubOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -31,8 +30,6 @@ Resources:
                   Fn::Join:
                     - ""
                     - - "repo:"
-                      - Ref: GitHubOwner
-                      - /
                       - Ref: GitHubRepository
                       - ":workflow:"
                       - Ref: GitHubCdkDeployWorkflow
