@@ -29,18 +29,20 @@ curl --fail --location --silent --show-error \
 ### 2. ロール：リポジトリごと
 
 ```sh
+OWNER=octo-org
+REPOSITORY=example-repo
 curl --fail --location --silent --show-error \
   https://raw.githubusercontent.com/goataka/aws-github-oidc-provider/main/cloudformation/github-oidc-repository.yml \
   --output github-oidc-repository.yml \
 && aws cloudformation deploy \
   --template-file github-oidc-repository.yml \
-  --stack-name github-oidc-repository-REPOSITORY \
+  --stack-name github-oidc-repository-${REPOSITORY} \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
-    GitHubRepository=OWNER/REPOSITORY
+    GitHubRepository=${OWNER}/${REPOSITORY}
 ```
 
-- **スタック名：** リポジトリごとに別の名前にします。例：`github-oidc-repository-example-repo`
+- **変数：** `OWNER`と`REPOSITORY`を環境に合わせて設定します。スタック名は`github-oidc-repository-${REPOSITORY}`になります。
 - **失敗時：** `curl`が失敗すると、`aws cloudformation deploy`は実行されません。
 - **実行環境：** リージョンは実行環境の設定に従います。
 
