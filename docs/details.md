@@ -24,7 +24,9 @@
 ### subjectの形式
 
 - **Environment未指定：** `repo:OWNER/REPOSITORY:workflow:WORKFLOW_NAME:ref:refs/heads/main`
+  - **例：** `repo:octo-org/example-repo:workflow:deploy-prod:ref:refs/heads/main`
 - **Environment指定：** `repo:OWNER/REPOSITORY:environment:ENVIRONMENT_NAME`
+  - **例：** `repo:octo-org/example-repo:environment:production`
 
 ### Environmentの注意
 
@@ -34,7 +36,7 @@
 ### その他の注意
 
 - **immutable subject：** **無効**のままにしてください。有効にするとsubjectがIDを含む形式に変わり、ロールと一致しなくなります。
-- **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。
+- **Workflow名：** `WORKFLOW_NAME`には`.yml`のファイル名ではなく、Workflowの`name`を指定します。例：`deploy-prod`
 
 ## 名前ベースの注意
 
@@ -47,12 +49,12 @@
 - **プロバイダー：** 同じURLのOIDCプロバイダーは、AWSアカウントに1つだけ作成できます。リポジトリごとには作成できません。
 - **分割の理由：** プロバイダーとロールを同じスタックに入れると、2つ目のリポジトリで同じプロバイダーを作成しようとして失敗します。また、プロバイダーのスタックを削除すると、他のリポジトリのロールが使えなくなります。
 - **分割の方法：** プロバイダーは`GitHubOidcProviderStack`、ロールは`GitHubOidcRepositoryStack`に分けています。ロールは、プロバイダーのARNを文字列で参照するため、スタック間の依存はありません。
-- **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
+- **プロバイダーのARN：** `arn:aws:iam::アカウントID:oidc-provider/token.actions.githubusercontent.com`の形式です。例：`arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com`プロバイダーのスタックの出力`GitHubOidcProviderArn`でも確認できます。
 - **権限：** プロバイダーのスタックには`CAPABILITY_IAM`が必要です。ロールのスタックは、ロール名を指定しているため`CAPABILITY_NAMED_IAM`が必要です。
 
 ## ロールと出力
 
-- **ロール名：** `GHACdkDeploy-リポジトリ名`です。
+- **ロール名：** `GHACdkDeploy-リポジトリ名`です。例：`octo-org/example-repo`の場合は`GHACdkDeploy-example-repo`です。
 - **リポジトリ名の上限：** `REPOSITORY`部分は51文字以内です。IAMのロール名の上限は64文字のため、接頭辞と区切りを除いた長さです。
 - **出力：** スタックの出力`GHACdkDeployRoleArn`にロールのARNを出力します。
 - **権限の構成：** 次の2つのインラインポリシーに分けています。
@@ -60,6 +62,12 @@
   - **`CdkBootstrapAccess`：** `cdk bootstrap`に必要な権限です。
 
 ## 権限の範囲
+
+- **変数の例：** 修飾子を`hnb659fds`、アカウントIDを`123456789012`とすると、次のように展開されます。
+  - `cdk-修飾子-*`：`cdk-hnb659fds-*`
+  - `/cdk-bootstrap/修飾子/version`：`/cdk-bootstrap/hnb659fds/version`
+  - `cdk-修飾子-assets-アカウントID-*`：`cdk-hnb659fds-assets-123456789012-*`
+  - `cdk-修飾子-container-assets-アカウントID-*`：`cdk-hnb659fds-container-assets-123456789012-*`
 
 ### CdkDeployAccess
 
@@ -96,4 +104,4 @@
 ## Workflow名の変更
 
 - **パラメーター：** `CdkDeployGitHubWorkflow`で指定します。ロールのスタックにだけ適用します。
-- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、ロールのスタックで`aws cloudformation deploy`を実行します。
+- **手順：** `--parameter-overrides`に`CdkDeployGitHubWorkflow=WORKFLOW名`を追加し、ロールのスタックで`aws cloudformation deploy`を実行します。例：`CdkDeployGitHubWorkflow=deploy-prod`
