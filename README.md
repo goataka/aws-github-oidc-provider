@@ -10,7 +10,7 @@
 
 AWS CloudShellで実行します。Node.js、pnpm、CDKのインストールは不要です。
 
-- **前提：** 対象のAWSアカウントで`cdk bootstrap`を実行済みであること。
+- **cdk bootstrap：** 対象のAWSアカウントで未実行の前提です。初回は後述のWorkflow手順で実行してください。
 - **リージョン：** 実行環境のリージョン設定に従います。
 
 ```sh
@@ -31,8 +31,8 @@ curl --fail --location --silent --show-error \
 ## パラメーター
 
 - **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。
-- **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけが利用できます。
 - **CdkDeployGitHubWorkflow：** 任意です。既定値は`cdk-deploy`です。`GitHubEnvironment`が空のときに使います。
+- **GitHubEnvironment：** 任意です。既定値は空です。指定すると、そのEnvironmentを使うジョブだけが利用できます。
 - **CdkBootstrapQualifier：** 任意です。既定値は`hnb659fds`です。対象アカウントの`cdk bootstrap --qualifier`と一致させます。
 
 変更する場合は、`--parameter-overrides`に`名前=値`を追加して、同じ`aws cloudformation deploy`を実行します。
@@ -42,6 +42,14 @@ curl --fail --location --silent --show-error \
 - **権限：** Workflowに`permissions: id-token: write`を設定します。
 - **Workflow名：** `CdkDeployGitHubWorkflow`には、`.yml`のファイル名ではなくWorkflowの`name`を指定します。
 - **ロール：** 作成されるロールの名前は`GHACdkDeploy-リポジトリ名`です。ARNは、スタックの出力`GHACdkDeployRoleArn`で確認します。
+- **初回のブートストラップ：** 対象アカウントで`cdk bootstrap`が未実行の場合は、ロールを引き受けた後、デプロイの前に次のステップを実行します。実行は初回だけで十分です。
+
+```yaml
+- name: Bootstrap CDK
+  run: pnpm exec cdk bootstrap --qualifier hnb659fds
+```
+
+- **修飾子を変えた場合：** `--qualifier`の値を`CdkBootstrapQualifier`と一致させてください。
 
 ## 注意
 
