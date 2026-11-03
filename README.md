@@ -15,9 +15,10 @@
 - **テンプレート：** [`cloudformation/github-oidc.yml`](cloudformation/github-oidc.yml)は**CloudFormation**で利用できる生成済みテンプレートです。
 - **ロール名：** `GitHubActionsCdkDeploy-リポジトリ名`です。リポジトリ名はIAMのロール名の上限に合わせ、41文字以内です。
 - **ARN：** スタックの出力`GitHubCdkDeployRoleArn`で確認します。
-  - **権限：** CDKのブートストラップロールを引き受ける`sts:AssumeRole`と、ブートストラップのバージョンを読む`ssm:GetParameter`だけです。
-  - **対象：** アカウント内の`cdk-hnb659fds-*`ロールと`/cdk-bootstrap/hnb659fds/version`パラメーターに限定します。
-  - **前提：** 対象アカウントで`cdk bootstrap`を実行済みであることが必要です。`cdk bootstrap`の既定の修飾子`hnb659fds`を使います。
+- **権限の構成：** 次の2つのインラインポリシーに分けています。
+  - **`CdkDeployAccess`：** `cdk deploy`に必要な権限です。
+  - **`CdkBootstrapAccess`：** `cdk bootstrap`に必要な権限です。
+- **修飾子：** `CdkBootstrapQualifier`で指定します。既定値は`hnb659fds`です。
 - **制限：** ロールは指定したリポジトリ、Workflow、`main`ブランチに限定されます。
 - **既定のWorkflow：** `cdk-deploy`
 
@@ -88,6 +89,31 @@ aws cloudformation deploy \
 - **GitHubRepository：** 必須です。`OWNER/REPOSITORY`形式で指定します。例：`octo-org/example-repo`
 - **リポジトリ名の上限：** `REPOSITORY`部分は41文字以内です。ロール名に含めるためです。
 - **GitHubCdkDeployWorkflow：** 任意です。既定値は`cdk-deploy`です。Workflowの`name`を指定します。
+- **CdkBootstrapQualifier：** 任意です。既定値は`hnb659fds`です。1から10文字の英数字で指定し、対象アカウントの`cdk bootstrap --qualifier`と一致させます。
+
+## 権限の範囲
+
+### CdkDeployAccess
+
+- **目的：** `cdk deploy`でブートストラップのロールを使うための権限です。
+- **sts:AssumeRole：** アカウント内の`cdk-修飾子-*`ロールだけを引き受けます。
+- **ssm:GetParameter：** `/cdk-bootstrap/修飾子/version`だけを読みます。
+
+### CdkBootstrapAccess
+
+- **目的：** `cdk bootstrap`で、ブートストラップ用のリソースを作成・更新するための権限です。
+- **ValidateCloudFormationTemplate：** テンプレートの検証です。対象は`*`です。
+- **ManageCdkToolkitStack：** `CDKToolkit`スタックの作成・更新です。
+- **ManageCdkIamRoles：** `cdk-修飾子-*`ロールの作成・更新です。
+- **ManageCdkAssetBucket：** `cdk-修飾子-assets-アカウントID-*`バケットの作成・設定です。
+- **ManageCdkContainerRepository：** `cdk-修飾子-container-assets-アカウントID-*`リポジトリの作成・設定です。
+- **ManageCdkVersionParameter：** `/cdk-bootstrap/修飾子/version`の作成・更新です。
+
+### 注意
+
+- **対象の範囲：** `CDKToolkit`という既定のスタック名と、既定の資産用の名前だけを対象にしています。`--toolkit-stack-name`などを変えた場合は、権限の対象も変える必要があります。
+- **検証：** 権限の一覧は、CDKのブートストラップで作られるリソースから導いています。実際の`cdk bootstrap`で不足が出た場合は、この一覧を追加してください。
+- **強い権限になる点：** `cdk deploy`で引き受けるブートストラップのデプロイロールは、CDKの既定では広い権限を持つ実行ロールを使います。そのため、`sts:AssumeRole`の範囲でも実質的に強い権限になります。
 
 ## Workflow名の変更
 
